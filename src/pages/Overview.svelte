@@ -1,21 +1,22 @@
 <script lang="ts">
   import type { Host, ServiceGroup, HostData, ServiceStatus, WolConfig, WolStatus } from '../lib/types.js'
+  import { downFirst } from '../lib/utils/services.js'
   import Header from '../lib/components/Header.svelte'
   import HostCard from '../lib/components/HostCard.svelte'
-  import ServiceCard from '../lib/components/ServiceCard.svelte'
+  import ServiceRow from '../lib/components/ServiceRow.svelte'
+  import StatusLine from '../lib/components/StatusLine.svelte'
 
   interface Props {
     hosts?: Host[]
     services?: ServiceGroup[]
     overviewServiceNames?: string[]
-    hostData?: Map<string, HostData | null>
-    onlineCount?: number
+    hostData?: Map<string, HostData>
     serviceStatus?: Map<string, ServiceStatus>
     wolConfig?: WolConfig | null
     wolStatus?: WolStatus | null
   }
 
-  let { hosts = [], services = [], overviewServiceNames = [], hostData = new Map(), onlineCount = 0, serviceStatus = new Map(), wolConfig = null, wolStatus = null }: Props = $props()
+  let { hosts = [], services = [], overviewServiceNames = [], hostData = new Map(), serviceStatus = new Map(), wolConfig = null, wolStatus = null }: Props = $props()
 
   let overviewServices = $derived(
     overviewServiceNames.length
@@ -29,14 +30,9 @@
   )
 </script>
 
-<Header
-  title="Overview"
-  subtitle="Resource Telemetry across all Hosts"
-  {onlineCount}
-  totalHosts={hosts.length}
-  {wolConfig}
-  {wolStatus}
-/>
+<Header title="Overview" {wolConfig} {wolStatus} />
+
+<StatusLine {hosts} {hostData} services={services.flatMap(g => g.items)} {serviceStatus} />
 
 <div class="grid">
   {#each hosts as host (host.key)}
@@ -46,52 +42,30 @@
 
 <div class="services-section">
   {#each overviewServices as group (group.section)}
-    <div class="services-column">
-      <div class="section-title">{group.section}</div>
-      {#each group.items as svc (svc.href)}
-        {@const svcState = serviceStatus.get(svc.href)}
-        <ServiceCard
-          service={svc}
-          status={svcState?.status ?? 'checking'}
-          latency={svcState?.latency}
-        />
-      {/each}
-    </div>
+    <section>
+      <h2 class="section-title">{group.section}</h2>
+      <div class="list-surface">
+        {#each downFirst(group.items, serviceStatus) as svc (svc.href)}
+          <ServiceRow service={svc} status={serviceStatus.get(svc.href)} compact />
+        {/each}
+      </div>
+    </section>
   {/each}
 </div>
 
 <style>
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1rem;
   }
 
   .services-section {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-    margin-top: 1.75rem;
-  }
-
-  .services-column {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .section-title {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted-foreground);
-    margin-bottom: 0.25rem;
-    padding-left: 2px;
-  }
-
-  @media (max-width: 640px) {
-    .services-section { grid-template-columns: 1fr; }
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0 1rem;
+    margin-top: 0.5rem;
+    align-items: start;
   }
 
   @media (max-width: 480px) {

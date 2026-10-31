@@ -8,10 +8,10 @@
   let { options, value, onselect }: Props = $props()
 </script>
 
-<div class="selector">
+<div class="selector" role="group">
   {#each options as o (o.key ?? o.label)}
     {@const k = o.key ?? o.label}
-    <button class="btn" class:active={value === k} onclick={() => onselect(k)}>{o.label}</button>
+    <button class="btn" class:active={value === k} aria-pressed={value === k} onclick={() => onselect(k)}>{o.label}</button>
   {/each}
 </div>
 
@@ -27,17 +27,17 @@
 
   .btn {
     padding: 4px 12px;
-    font-size: 0.6rem;
+    min-height: 28px;
+    font-size: var(--text-xs);
     font-weight: 600;
-    font-family: 'Geist Mono', monospace;
+    font-family: inherit;
     color: var(--muted-foreground);
     background: transparent;
     border: none;
     border-radius: calc(var(--radius) - 3px);
     cursor: pointer;
-    transition: all 150ms ease;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+    transition: color 150ms ease, background-color 150ms ease;
+
   }
 
   .btn:hover {

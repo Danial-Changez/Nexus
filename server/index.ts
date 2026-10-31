@@ -8,6 +8,7 @@ import { mediaMiddleware } from './media-proxy.ts'
 import { glancesMiddleware, initGlancesProxy } from './glances-proxy.ts'
 import { wolMiddleware, initWol, type WolConfig } from './wol.ts'
 import { videoDlMiddleware } from './video-dl-proxy.ts'
+import { initStatus, statusMiddleware } from './status.ts'
 
 const log = logger('server')
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -37,6 +38,7 @@ try {
 // Initialize Glances proxy with host URLs from config
 initGlancesProxy(config.hosts || [])
 initWol(config.wol)
+initStatus((config.services || []).flatMap(g => g.items.map(i => i.href)))
 
 const app = express()
 
@@ -60,6 +62,7 @@ app.use(piholeMiddleware as any)
 app.use(mediaMiddleware as any)
 app.use(videoDlMiddleware as any)
 app.use(wolMiddleware as any)
+app.use(statusMiddleware as any)
 
 // Serve static build
 app.use(express.static(resolve(__dirname, '../dist')))

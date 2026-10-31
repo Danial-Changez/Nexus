@@ -4,13 +4,14 @@
     drawSeries, niceMax, snapToIndex, tooltipLeft, valueToY,
   } from '../utils/chart.js'
 
+  // Canvas can't read CSS vars; keep in sync with --series-1 / --series-2 in app.css
   const COLORS = {
-    green:  { stroke: 'oklch(0.696 0.17 162.48)', fill: 'oklch(0.696 0.17 162.48 / 0.15)' },
-    purple: { stroke: 'oklch(0.541 0.281 293.009)', fill: 'oklch(0.541 0.281 293.009 / 0.12)' },
+    series1: { stroke: 'oklch(0.72 0.13 240)', fill: 'oklch(0.72 0.13 240 / 0.15)' },
+    series2: { stroke: 'oklch(0.66 0.17 293)', fill: 'oklch(0.66 0.17 293 / 0.12)' },
   }
 
   interface Series { points: number[]; color: keyof typeof COLORS }
-  interface Row { dot: 'green' | 'purple' | 'muted'; label: string; value: string; divider?: boolean }
+  interface Row { dot: 'series1' | 'series2' | 'muted'; label: string; value: string; divider?: boolean }
 
   interface Props {
     series: Series[]              // paint order: first is drawn behind
@@ -20,9 +21,10 @@
     height?: string
     endDot?: boolean              // marker on the last point of series[0]
     rows: (idx: number) => Row[]  // tooltip rows for the hovered index
+    label?: string                // text alternative: summarise the chart's message
   }
 
-  let { series, timestamps = [], maxVal, fmtAxis, height = '200px', endDot = false, rows }: Props = $props()
+  let { series, timestamps = [], maxVal, fmtAxis, height = '200px', endDot = false, rows, label }: Props = $props()
 
   let canvasEl = $state<HTMLCanvasElement | null>(null)
   let hoverIdx = $state<number | null>(null)
@@ -100,11 +102,12 @@
   })
 </script>
 
-<div class="sparkline-wrap">
+<div class="sparkline-wrap" role="img" aria-label={label}>
   <canvas
     class="sparkline"
     style="height: {height}"
     bind:this={canvasEl}
+    aria-hidden="true"
     onmousemove={handleMove}
     onmouseleave={() => hoverIdx = null}
   ></canvas>
@@ -166,8 +169,8 @@
   }
 
   .tracking-dot.visible { opacity: 1; }
-  .tracking-dot.green { background: var(--chart-2); border: 1.5px solid color-mix(in oklch, var(--chart-2) 60%, transparent); }
-  .tracking-dot.purple { background: var(--primary); border: 1.5px solid color-mix(in oklch, var(--primary) 60%, transparent); }
+  .tracking-dot.series1 { background: var(--series-1); border: 1.5px solid color-mix(in oklch, var(--series-1) 60%, transparent); }
+  .tracking-dot.series2 { background: var(--series-2); border: 1.5px solid color-mix(in oklch, var(--series-2) 60%, transparent); }
 
   .spark-tooltip {
     position: absolute;
@@ -178,7 +181,7 @@
     border-radius: calc(var(--radius) - 2px);
     padding: 0.45rem 0.6rem;
     font-family: 'Geist Mono', monospace;
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     font-variant-numeric: tabular-nums;
     color: var(--foreground);
     white-space: nowrap;
@@ -214,8 +217,8 @@
     flex-shrink: 0;
   }
 
-  .tt-dot.green { background: var(--chart-2); }
-  .tt-dot.purple { background: var(--primary); }
+  .tt-dot.series1 { background: var(--series-1); }
+  .tt-dot.series2 { background: var(--series-2); }
   .tt-dot.muted { background: var(--muted-foreground); }
 
   .tt-label { color: var(--muted-foreground); }

@@ -23,6 +23,9 @@ export interface HostData {
   cpuHistory?: { user: number[]; system: number[] }
   cpuTimestamps?: string[]
   uptime?: string
+  netHistory?: number[]   // rx+tx samples from the 10s poll, for the Overview sparkline
+  updatedAt?: number      // last successful fetch
+  stale?: boolean         // latest fetch failed; values are from updatedAt
 }
 
 export interface ServiceItem {
@@ -37,9 +40,18 @@ export interface ServiceGroup {
   items: ServiceItem[]
 }
 
+export interface Check {
+  up: boolean
+  latency: number | null
+  at: number
+  code?: number
+}
+
 export interface ServiceStatus {
   status: 'up' | 'down' | 'checking'
   latency: number | null
+  history: Check[]
+  downSince?: number
 }
 
 // Only the display fields are sent to the client; MAC, ssh user, and

@@ -1,17 +1,17 @@
 <script lang="ts">
   import type { Host, HostData } from '../lib/types.js'
   import { cutoffIndex } from '../lib/utils/chart.js'
-  import Header from '../lib/components/Header.svelte'
+  import { getParam, setParam } from '../lib/utils/hash.js'
+  import PageHeader from '../lib/components/PageHeader.svelte'
   import HostCard from '../lib/components/HostCard.svelte'
   import Selector from '../lib/components/Selector.svelte'
 
   interface Props {
     hosts?: Host[]
-    hostData?: Map<string, HostData | null>
-    onlineCount?: number
+    hostData?: Map<string, HostData>
   }
 
-  let { hosts = [], hostData = new Map(), onlineCount = 0 }: Props = $props()
+  let { hosts = [], hostData = new Map() }: Props = $props()
 
   const RANGES = [
     { label: '1h',  seconds: 3600 },
@@ -19,7 +19,10 @@
     { label: '12h', seconds: 43200 },
     { label: '24h', seconds: 86400 },
   ]
-  let activeLabel = $state('1h')
+  let activeLabel = $state(getParam('range') ?? '1h')
+  $effect(() => setParam('range', activeLabel === '1h' ? null : activeLabel))
+
+  let onlineCount = $derived([...hostData.values()].filter(d => !d.error && !d.stale).length)
 
   let activeRange = $derived(RANGES.find(r => r.label === activeLabel) ?? RANGES[0])
 
@@ -46,12 +49,7 @@
   })
 </script>
 
-<Header
-  title="Host Metrics"
-  subtitle="Real-Time Resource Telemetry"
-  {onlineCount}
-  totalHosts={hosts.length}
-/>
+<PageHeader title="Metrics" subtitle="{onlineCount} of {hosts.length} hosts online" />
 
 <div class="controls-bar">
   <Selector options={RANGES} value={activeLabel} onselect={k => activeLabel = k} />

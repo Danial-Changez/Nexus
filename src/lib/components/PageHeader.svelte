@@ -3,50 +3,46 @@
 
   interface Props {
     title: string
-    subtitle: string
+    subtitle?: string
     children?: Snippet
   }
 
   let { title, subtitle, children }: Props = $props()
 </script>
 
-<div class="page-header card">
-  <div class="page-header-content">
-    <div>
-      <div class="page-title">{title}</div>
-      <div class="page-subtitle">{subtitle}</div>
-    </div>
-    {#if children}
-      <div class="page-stats">
-        {@render children()}
-      </div>
-    {/if}
+<header class="page-header">
+  <div>
+    <h1 class="page-title">{title}</h1>
+    {#if subtitle}<p class="page-subtitle">{subtitle}</p>{/if}
   </div>
-</div>
+  {#if children}
+    <div class="page-stats">
+      {@render children()}
+    </div>
+  {/if}
+</header>
 
 <style>
   .page-header {
-    padding: 1.5rem 2rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--border);
-  }
-
-  .page-header-content {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 1.25rem;
+    min-height: 2.5rem;
   }
 
   .page-title {
-    font-size: 1.15rem;
+    font-size: var(--text-xl);
     font-weight: 700;
     letter-spacing: -0.02em;
+    line-height: 1.2;
     color: var(--foreground);
   }
 
   .page-subtitle {
-    font-size: 0.75rem;
-    font-family: 'Geist Mono', monospace;
+    font-size: var(--text-sm);
     color: var(--muted-foreground);
     margin-top: 2px;
   }
@@ -59,19 +55,17 @@
 
   /* Baseline for slotted stat blocks; deliberately low-specificity so
      page-scoped overrides always win */
-  :global(.page-stat) { text-align: center; }
+  :global(.page-stat) { text-align: right; }
 
   :global(.page-stat-value) {
-    font-size: 1.25rem;
+    font-size: var(--text-lg);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
   }
 
   :global(.page-stat-label) {
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
     font-weight: 500;
   }
 

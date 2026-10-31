@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { barClass } from '../utils/format.js'
+  import { barClass, WARN_AT, CRIT_AT } from '../utils/format.js'
   import Icon from './Icon.svelte'
 
   interface Props {
@@ -7,23 +7,34 @@
     label: string
     value: number
     detail: string
+    avg?: number   // reference tick, e.g. the 24h average
   }
 
-  let { icon, label, value, detail }: Props = $props()
+  let { icon, label, value, detail, avg }: Props = $props()
   let cls = $derived(barClass(value))
+  let pct = $derived(Math.min(100, Math.max(0, value)))
 </script>
 
 <div class="metric">
   <div class="metric-top">
-    <div class="metric-label-group">
-      <span class="metric-icon"><Icon name={icon} size="13px" /></span>
-      <span class="metric-label">{label} USAGE</span>
-    </div>
-    <span class="metric-value">{value.toFixed(1)}%</span>
+    <span class="metric-label"><Icon name={icon} size="13px" />{label}</span>
+    <span class="metric-value" class:warn={cls === 'warn'} class:crit={cls === 'crit'}>{Math.round(value)}%</span>
   </div>
   <div class="metric-detail">{detail}</div>
-  <div class="bar-track">
-    <div class="bar-fill" class:low={cls === 'low'} class:mid={cls === 'mid'} class:high={cls === 'high'} class:critical={cls === 'critical'} style="width:{value}%"></div>
+  <!-- Bullet graph: bands mark the warn/crit thresholds; the bar only takes color past them -->
+  <div
+    class="bullet"
+    style="--warn-at:{WARN_AT}%;--crit-at:{CRIT_AT}%"
+    role="meter"
+    aria-label="{label} usage"
+    aria-valuenow={Math.round(value)}
+    aria-valuemin={0}
+    aria-valuemax={100}
+  >
+    <div class="bar {cls}" style="transform:scaleX({pct / 100})"></div>
+    {#if avg != null}
+      <div class="tick" style="left:{Math.min(100, avg)}%" title="Average {Math.round(avg)}%"></div>
+    {/if}
   </div>
 </div>
 
@@ -35,65 +46,66 @@
 
   .metric-top {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
-    margin-bottom: 4px;
-  }
-
-  .metric-label-group {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-
-  .metric-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: var(--muted-foreground);
-    opacity: 0.6;
   }
 
   .metric-label {
-    font-size: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
     font-weight: 600;
   }
 
   .metric-value {
-    font-size: 1.05rem;
+    font-size: var(--text-lg);
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    font-family: 'Geist Mono', monospace;
     color: var(--foreground);
   }
 
+  .metric-value.warn { color: var(--warn); }
+  .metric-value.crit { color: var(--crit); }
+
   .metric-detail {
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
     margin-bottom: 6px;
     font-variant-numeric: tabular-nums;
-    font-family: 'Geist Mono', monospace;
   }
 
-  .bar-track {
-    height: 6px;
-    background: var(--secondary);
+  .bullet {
+    position: relative;
+    height: 12px;
     border-radius: 3px;
     overflow: hidden;
+    background: linear-gradient(to right,
+      oklch(1 0 0 / 5%) 0 var(--warn-at),
+      oklch(1 0 0 / 9%) var(--warn-at) var(--crit-at),
+      oklch(1 0 0 / 14%) var(--crit-at));
   }
 
-  .bar-fill {
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.8s ease;
+  .bar {
+    position: absolute;
+    inset: 3px 0;
+    border-radius: 2px;
+    transform-origin: left;
+    transition: transform 200ms ease;
   }
 
-  .bar-fill.low { background: var(--chart-2); }
-  .bar-fill.mid { background: var(--chart-3); }
-  .bar-fill.high { background: var(--chart-5); }
-  .bar-fill.critical { background: var(--destructive); }
+  .bar.ok { background: oklch(0.985 0 0 / 0.8); }
+  .bar.warn { background: var(--warn); }
+  .bar.crit { background: var(--crit); }
+
+  .tick {
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--foreground);
+    opacity: 0.55;
+  }
 </style>

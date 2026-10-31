@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { fmt, fmtRate } from '../utils/format.js'
+  import { poll } from '../utils/poll.js'
+  import { errorHint, fmt, fmtAgo, fmtRate } from '../utils/format.js'
   import Icon from './Icon.svelte'
 
   // result: "pending_release" = aired but not posted yet (shown as
@@ -32,11 +33,7 @@
     }
   }
 
-  onMount(() => {
-    fetchStats()
-    const interval = setInterval(fetchStats, 1000)
-    return () => clearInterval(interval)
-  })
+  onMount(() => poll(fetchStats, 1000))
 
   function fmtElapsed(startedAt: number | null): string {
     if (!startedAt) return ''
@@ -44,15 +41,6 @@
     const m = Math.floor(secs / 60)
     const s = secs % 60
     return m > 0 ? `${m}m ${s}s` : `${s}s`
-  }
-
-  function fmtAgo(iso: string | null): string {
-    if (!iso) return '\u2014'
-    const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-    if (secs < 60)    return `${secs}s ago`
-    if (secs < 3600)  return `${Math.floor(secs / 60)}m ago`
-    if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`
-    return `${Math.floor(secs / 86400)}d ago`
   }
 
   function episodeLabel(d: ActiveDl): string {
@@ -82,7 +70,7 @@
     <span class="panel-icon-wrap"><Icon name="downloadSquare" size="28px" /></span>
     <div>
       <span class="panel-title">Video Downloader</span>
-      <span class="panel-subtitle">Turkish Episode Fetcher</span>
+      <span class="panel-subtitle">Turkish episode fetcher</span>
     </div>
 
     {#if !data}
@@ -118,7 +106,7 @@
       </div>
       <div class="vdl-stat">
         <span class="vdl-value">{data.tracked_count ?? 0}</span>
-        <span class="vdl-label">Tracked Series</span>
+        <span class="vdl-label">Tracked series</span>
       </div>
     </div>
 
@@ -177,7 +165,7 @@
                 {:else}
                   <span class="item-badge stalled">Attempted</span>
                 {/if}
-                <span class="item-detail">{fmtAgo(a.at)}</span>
+                <span class="item-detail">{fmtAgo(Date.parse(a.at))}</span>
               </div>
             </div>
           </div>
@@ -185,50 +173,50 @@
       </div>
     {/if}
   {:else if data?.error}
-    <div class="panel-error">{data.error}</div>
+    <div class="panel-error">{errorHint('The video downloader', data.error)}</div>
   {:else}
-    <div class="panel-error loading-pulse">Loading...</div>
+    <div class="panel-error loading-pulse">Loading…</div>
   {/if}
 </div>
 
 <style>
   .media-panel { padding: 1.25rem 1.5rem; }
   .panel-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
-  .panel-icon-wrap { display: flex; color: #60a5fa; }
-  .panel-title { font-size: 0.85rem; font-weight: 600; display: block; line-height: 1.2; }
-  .panel-subtitle { font-size: 0.6rem; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; }
+  .panel-icon-wrap { display: flex; color: var(--foreground); }
+  .panel-title { font-size: var(--text-md); font-weight: 600; display: block; line-height: 1.2; }
+  .panel-subtitle { font-size: var(--text-xs); color: var(--muted-foreground); }
 
   .panel-badge {
-    margin-left: auto; font-size: 0.6rem; padding: 2px 8px; border-radius: 9999px;
+    margin-left: auto; font-size: var(--text-xs); padding: 2px 8px; border-radius: 9999px;
     font-weight: 500; text-transform: capitalize; background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border);
   }
-  .panel-badge.connected { background: color-mix(in oklch, var(--chart-2) 12%, transparent); color: var(--chart-2); border-color: color-mix(in oklch, var(--chart-2) 25%, transparent); }
+  .panel-badge.connected { background: color-mix(in oklch, var(--ok) 12%, transparent); color: var(--ok); border-color: color-mix(in oklch, var(--ok) 25%, transparent); }
   .panel-badge.offline { background: color-mix(in oklch, var(--destructive) 12%, transparent); color: var(--destructive); border-color: color-mix(in oklch, var(--destructive) 25%, transparent); }
-  .panel-error { font-size: 0.7rem; color: var(--muted-foreground); padding: 0.75rem 0; text-align: center; }
+  .panel-error { font-size: var(--text-xs); color: var(--muted-foreground); padding: 0.75rem 0; text-align: center; }
 
   .vdl-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.75rem; }
   .vdl-stat { text-align: center; padding: 0.5rem 0.25rem; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); }
-  .vdl-value { font-size: 1rem; font-weight: 700; font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums; display: block; }
-  .vdl-label { font-size: 0.5rem; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; }
+  .vdl-value { font-size: var(--text-md); font-weight: 700; font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums; display: block; }
+  .vdl-label { font-size: var(--text-xs); color: var(--muted-foreground); }
 
   .item-list { display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.75rem; margin-bottom: 0.75rem; }
   .recent-list { margin-bottom: 0; }
   .item-row { display: flex; align-items: center; gap: 0.5rem; }
   .item-info { min-width: 0; flex: 1; }
-  .item-name { font-size: 0.7rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .item-name { font-size: var(--text-xs); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .item-meta { display: flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem; flex-wrap: wrap; }
-  .item-badge { font-size: 0.55rem; padding: 1px 5px; border-radius: 4px; font-weight: 600; text-transform: uppercase; }
-  .item-badge.downloading { background: color-mix(in oklch, oklch(0.72 0.13 230) 15%, transparent); color: oklch(0.72 0.13 230); }
+  .item-badge { font-size: var(--text-xs); padding: 1px 5px; border-radius: 4px; font-weight: 600; }
+  .item-badge.downloading { background: color-mix(in oklch, var(--series-1) 15%, transparent); color: var(--series-1); }
   .item-badge.stalled { background: var(--muted); color: var(--muted-foreground); }
-  .item-badge.waiting { background: color-mix(in oklch, oklch(0.78 0.12 85) 15%, transparent); color: oklch(0.78 0.12 85); }
-  .item-detail { font-size: 0.58rem; font-family: 'Geist Mono', monospace; color: var(--muted-foreground); }
-  .item-detail.dl { color: oklch(0.72 0.13 230); }
+  .item-badge.waiting { background: color-mix(in oklch, var(--series-3) 15%, transparent); color: var(--series-3); }
+  .item-detail { font-size: var(--text-xs); font-family: 'Geist Mono', monospace; color: var(--muted-foreground); }
+  .item-detail.dl { color: var(--series-1); }
 
   .dl-row { flex-wrap: wrap; }
-  .dl-pct { font-size: 0.6rem; font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums; color: oklch(0.72 0.13 230); flex-shrink: 0; }
-  .dl-progress-track { width: 100%; height: 3px; background: color-mix(in oklch, oklch(0.72 0.13 230) 15%, transparent); border-radius: 2px; overflow: hidden; }
-  .dl-progress-bar { height: 100%; background: oklch(0.72 0.13 230); border-radius: 2px; transition: width 0.5s ease; }
-  .dl-pulse { width: 8px; height: 8px; border-radius: 50%; background: oklch(0.72 0.13 230); flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite; }
+  .dl-pct { font-size: var(--text-xs); font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums; color: var(--series-1); flex-shrink: 0; }
+  .dl-progress-track { width: 100%; height: 3px; background: color-mix(in oklch, var(--series-1) 15%, transparent); border-radius: 2px; overflow: hidden; }
+  .dl-progress-bar { height: 100%; background: var(--series-1); border-radius: 2px; transition: width 0.5s ease; }
+  .dl-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--series-1); flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite; }
 
   @keyframes pulse {
     0%, 100% { opacity: 1; transform: scale(1); }

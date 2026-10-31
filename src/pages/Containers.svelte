@@ -1,10 +1,12 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { untrack } from 'svelte'
+  import { poll } from '../lib/utils/poll.js'
+  import { getParam, setParam } from '../lib/utils/hash.js'
   import type { Host } from '../lib/types.js'
   import { fmt } from '../lib/utils/format.js'
   import Icon from '../lib/components/Icon.svelte'
   import PageHeader from '../lib/components/PageHeader.svelte'
-  import Selector from '../lib/components/Selector.svelte'
+  import StatusIcon from '../lib/components/StatusIcon.svelte'
 
   interface Props {
     hosts?: Host[]
@@ -50,7 +52,6 @@
   }
 
   async function fetchContainers() {
-    loading = true
     const allResults = await Promise.all(hosts.map(fetchContainersFromHost))
     containers = allResults.flat().sort((a, b) => {
       const aRunning = isRunning(a) ? 0 : 1
@@ -66,20 +67,17 @@
     return s === 'running' || s === 'healthy' || s.startsWith('up')
   }
 
-  function isHealthy(c: ContainerInfo) {
-    return (c.status || '').toLowerCase() === 'healthy'
-  }
-
-  onMount(() => {
-    fetchContainers()
-    const interval = setInterval(fetchContainers, 30000)
-    return () => clearInterval(interval)
+  // Hosts arrive with the config; start polling once they're known
+  $effect(() => {
+    if (hosts.length) return untrack(() => poll(fetchContainers, 30000))
   })
 
-  let search = $state('')
-  let sortBy = $state('name')
+  let search = $state(getParam('q') ?? '')
+  let sortBy = $state(getParam('sort') ?? 'name')
+  $effect(() => setParam('q', search.trim()))
+  $effect(() => setParam('sort', sortBy === 'name' ? null : sortBy))
 
-  const SORTS = [
+  const COLUMNS = [
     { key: 'name', label: 'Name' },
     { key: 'cpu',  label: 'CPU' },
     { key: 'mem',  label: 'Memory' },
@@ -106,52 +104,10 @@
   let runningCount = $derived(containers.filter(isRunning).length)
 </script>
 
-<!-- Extracted: reusable container card snippet -->
-{#snippet containerCard(container: ContainerInfo, showHost: boolean)}
-  {@const running = isRunning(container)}
-  <div class="container-card card" class:dimmed={!running}>
-    <div class="container-header">
-      <div class="container-icon" class:running>
-        <span style="color:{running ? '#56d4a0' : 'var(--muted-foreground)'}"><Icon name="container" size="15px" /></span>
-      </div>
-      <div class="container-info">
-        <div class="container-name">{container.name}</div>
-        <div class="container-image">{container.image}</div>
-      </div>
-      <span class="container-badge" class:running class:healthy={isHealthy(container)} class:stopped={!running}>
-        {isHealthy(container) ? 'Healthy' : running ? 'Running' : container.status || 'Stopped'}
-      </span>
-    </div>
-    <div class="container-meta">
-      {#if showHost}
-        <span class="meta-tag host-tag">{container.host}</span>
-      {/if}
-      {#if container.cpu != null}
-        <span class="meta-tag">
-          <span class="meta-icon"><Icon name="cpu" size="10px" /></span>
-          {container.cpu.toFixed(1)}%
-        </span>
-      {/if}
-      {#if container.mem != null}
-        <span class="meta-tag meta-mem">
-          <span class="meta-icon"><Icon name="memory" size="10px" /></span>
-          {fmt(container.mem)}
-          {#if container.memLimit}/ {fmt(container.memLimit)}{/if}
-        </span>
-      {/if}
-    </div>
-  </div>
-{/snippet}
-
-<PageHeader title="Containers" subtitle="Docker Containers across all Hosts">
+<PageHeader title="Containers" subtitle="Docker containers reported by Glances on each host">
   <div class="page-stat">
-    <div class="page-stat-value running">{runningCount}</div>
-    <div class="page-stat-label">Running</div>
-  </div>
-  <div class="page-divider"></div>
-  <div class="page-stat">
-    <div class="page-stat-value">{containers.length}</div>
-    <div class="page-stat-label">Total</div>
+    <div class="page-stat-value">{runningCount} running</div>
+    <div class="page-stat-label">of {containers.length} containers</div>
   </div>
 </PageHeader>
 
@@ -159,149 +115,155 @@
   <div class="search-wrap">
     <span class="search-icon"><Icon name="magnifier" size="14px" /></span>
     <input
-      type="text"
+      type="search"
       class="search-input"
-      placeholder="Search containers..."
+      name="container-search"
+      placeholder="Search by name, image or host…"
+      aria-label="Search containers"
+      autocomplete="off"
+      spellcheck="false"
       bind:value={search}
     />
-    {#if search}
-      <button class="search-clear" onclick={() => search = ''}>×</button>
-    {/if}
-  </div>
-  <div class="sort-wrap">
-    <Selector options={SORTS} value={sortBy} onselect={k => sortBy = k} />
   </div>
 </div>
 
+{#snippet sortHeader(col: { key: string; label: string }, cls: string)}
+  <th class={cls} aria-sort={sortBy === col.key ? (col.key === 'name' ? 'ascending' : 'descending') : 'none'}>
+    <button class="sort-btn" class:active={sortBy === col.key} onclick={() => sortBy = col.key}>
+      {col.label}
+      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d={col.key === 'name' ? 'M2 6.5 5 3.5l3 3' : 'M2 3.5 5 6.5l3-3'} fill="none" stroke="currentColor" stroke-width="1.5" /></svg>
+    </button>
+  </th>
+{/snippet}
+
 {#if loading && containers.length === 0}
-  <div class="loading-state">
-    <div class="loading-pulse">Loading containers...</div>
+  <div class="list-surface skeleton-table" aria-hidden="true">
+    {#each [0, 1, 2, 3, 4] as i (i)}<div class="skeleton" style="width:{70 - i * 8}%"></div>{/each}
   </div>
 {:else if containers.length === 0}
   <div class="empty-state">
     <span class="empty-icon"><Icon name="box" size="48px" /></span>
-    <p>No container data available</p>
-    <span class="empty-hint">Ensure the Glances Docker plugin is enabled on your hosts</span>
+    <p>No containers reported</p>
+    <span class="empty-hint">Enable the Glances Docker plugin on your hosts to list their containers here.</span>
+  </div>
+{:else if filtered.length === 0}
+  <div class="empty-state">
+    <p>No containers match "{search}"</p>
+    <button class="clear-btn" onclick={() => search = ''}>Clear search</button>
   </div>
 {:else}
-  {@const list = filtered}
-  {#if list.length === 0}
-    <div class="empty-state">
-      <p>No containers match "{search}"</p>
-    </div>
-  {:else if sortBy !== 'name'}
-    <div class="container-grid">
-      {#each list as container (container.id)}
-        {@render containerCard(container, true)}
+  <div class="table-wrap list-surface">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-status"><span class="visually-hidden">Status</span></th>
+          {@render sortHeader(COLUMNS[0], 'col-name')}
+          {@render sortHeader(COLUMNS[1], 'col-num')}
+          {@render sortHeader(COLUMNS[2], 'col-num')}
+        </tr>
+      </thead>
+      {#each hosts as host (host.key)}
+        {@const rows = filtered.filter(c => c.hostKey === host.key)}
+        {#if rows.length > 0}
+          <tbody>
+            <tr class="group-row">
+              <th colspan="4" scope="rowgroup">
+                {host.name}
+                <span class="host-count">{rows.filter(isRunning).length} of {rows.length} running</span>
+              </th>
+            </tr>
+            {#each rows as c (c.id)}
+              {@const running = isRunning(c)}
+              <tr class:dimmed={!running}>
+                <td class="col-status"><StatusIcon status={running ? 'up' : 'idle'} /></td>
+                <td class="col-name">
+                  <span class="c-name">{c.name}</span>
+                  <span class="c-image" translate="no">{c.image.split(',')[0]}</span>
+                </td>
+                <td class="col-num">{c.cpu != null ? `${c.cpu.toFixed(1)}%` : '–'}</td>
+                <td class="col-num">
+                  {c.mem != null ? fmt(c.mem) : '–'}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        {/if}
       {/each}
-    </div>
-  {:else}
-    {#each hosts as host (host.key)}
-      {@const hostContainers = list.filter(c => c.hostKey === host.key)}
-      {#if hostContainers.length > 0}
-      <div class="host-label">
-        <span style="color:var(--muted-foreground)"><Icon name="container" size="14px" /></span>
-        {host.name}
-        <span class="host-count">{hostContainers.filter(isRunning).length}/{hostContainers.length}</span>
-      </div>
-      <div class="container-grid">
-        {#each hostContainers as container (container.id)}
-          {@render containerCard(container, false)}
-        {/each}
-      </div>
-    {/if}
-  {/each}
-  {/if}
+    </table>
+  </div>
 {/if}
 
 <style>
   .controls-bar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
 
-  .search-wrap { position: relative; flex: 1; max-width: 320px; }
+  .search-wrap { position: relative; flex: 1; max-width: 360px; }
 
   .search-icon {
     position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-    pointer-events: none; opacity: 0.5; display: flex; color: var(--muted-foreground);
+    pointer-events: none; display: flex; color: var(--muted-foreground);
   }
 
   .search-input {
-    width: 100%; padding: 6px 28px 6px 30px; font-size: 0.7rem;
-    font-family: 'Geist Mono', monospace; color: var(--foreground);
+    width: 100%; min-height: 2.25rem; padding: 0 10px 0 32px; font: inherit; font-size: var(--text-sm);
+    color: var(--foreground);
     background: var(--secondary); border: 1px solid var(--border);
     border-radius: var(--radius); outline: none; transition: border-color 150ms ease;
   }
   .search-input::placeholder { color: var(--muted-foreground); }
-  .search-input:focus { border-color: var(--primary); }
+  .search-input:focus-visible { border-color: var(--primary); }
 
-  .search-clear {
-    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: var(--muted-foreground);
-    cursor: pointer; font-size: 0.9rem; line-height: 1; padding: 2px 4px;
+  .table-wrap { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
+
+  th, td { padding: 0.5rem 0.9rem; text-align: left; }
+  thead th { font-size: var(--text-xs); font-weight: 600; color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
+  tbody tr + tr td { border-top: 1px solid oklch(1 0 0 / 5%); }
+
+  .col-status { width: 2rem; padding-right: 0; }
+  .col-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; width: 1%; }
+  thead .col-num .sort-btn { margin-left: auto; }
+
+  .sort-btn {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    background: none; border: none; padding: 0; cursor: pointer;
+    font: inherit; color: inherit;
   }
-  .search-clear:hover { color: var(--foreground); }
+  .sort-btn svg { opacity: 0; }
+  .sort-btn.active { color: var(--foreground); }
+  .sort-btn.active svg { opacity: 1; }
+  .sort-btn:hover { color: var(--foreground); }
 
-  .sort-wrap { margin-left: auto; }
-
-  .host-tag { font-weight: 600; color: var(--foreground); }
-
-  .page-stat-value.running { color: var(--chart-2); }
-
-  .host-label {
-    display: flex; align-items: center; gap: 0.5rem;
-    font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--muted-foreground);
-    margin: 1.5rem 0 0.75rem; padding-left: 2px;
+  .group-row th {
+    font-size: var(--text-sm); font-weight: 600; color: var(--foreground);
+    background: oklch(1 0 0 / 3%);
+    border-top: 1px solid var(--border);
   }
+  tbody:first-of-type .group-row th { border-top: none; }
 
-  .host-count {
-    font-family: 'Geist Mono', monospace; font-size: 0.6rem;
-    padding: 1px 6px; border-radius: 4px; background: var(--secondary); border: 1px solid var(--border);
-  }
+  .host-count { font-size: var(--text-xs); font-weight: 400; color: var(--muted-foreground); margin-left: 0.5rem; }
 
-  .container-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.65rem; }
-  .container-card { padding: 0.85rem 1rem; }
-  .container-card.dimmed { opacity: 0.55; }
-  .container-card.dimmed:hover { opacity: 0.8; }
+  .c-name { display: block; font-weight: 600; }
+  .c-image { display: block; font-size: var(--text-xs); color: var(--muted-foreground); overflow-wrap: anywhere; }
 
-  .container-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
+  tr.dimmed td { color: var(--muted-foreground); }
+  tr.dimmed .c-name { font-weight: 500; }
 
-  .container-icon {
-    width: 30px; height: 30px; border-radius: calc(var(--radius) - 2px);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    background: var(--secondary); border: 1px solid var(--border);
-  }
-  .container-icon.running {
-    background: color-mix(in oklch, var(--chart-2) 12%, transparent);
-    border-color: color-mix(in oklch, var(--chart-2) 25%, transparent);
-  }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-  .container-info { flex: 1; min-width: 0; }
-  .container-name { font-size: 0.78rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .container-image { font-size: 0.58rem; color: var(--muted-foreground); font-family: 'Geist Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-
-  .container-badge { font-size: 0.58rem; padding: 2px 7px; border-radius: 9999px; font-weight: 500; flex-shrink: 0; white-space: nowrap; }
-  .container-badge.running { background: color-mix(in oklch, var(--chart-2) 12%, transparent); color: var(--chart-2); border: 1px solid color-mix(in oklch, var(--chart-2) 25%, transparent); }
-  .container-badge.healthy { background: color-mix(in oklch, var(--chart-2) 18%, transparent); color: var(--chart-2); border: 1px solid color-mix(in oklch, var(--chart-2) 30%, transparent); }
-  .container-badge.stopped { background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border); }
-
-  .container-meta { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-  .meta-mem { margin-left: auto; }
-  .meta-tag {
-    display: flex; align-items: center; gap: 0.3rem;
-    font-size: 0.6rem; font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums;
-    padding: 2px 6px; border-radius: 4px; background: var(--secondary);
-    border: 1px solid var(--border); color: var(--muted-foreground);
-  }
-  .meta-icon { display: flex; color: var(--muted-foreground); }
-
-  @media (max-width: 640px) {
-    .controls-bar { flex-direction: column; align-items: stretch; }
-    .search-wrap { max-width: none; }
-    .sort-wrap { align-self: flex-end; }
-    .container-grid { grid-template-columns: 1fr; }
-  }
+  .skeleton-table { display: flex; flex-direction: column; gap: 0.9rem; padding: 1rem; }
 
   .loading-state, .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted-foreground); }
   .empty-icon { display: inline-flex; margin-bottom: 1rem; opacity: 0.5; color: var(--muted-foreground); }
-  .empty-hint { font-size: 0.7rem; opacity: 0.6; display: block; margin-top: 0.5rem; }
+  .empty-hint { font-size: var(--text-sm); display: block; margin-top: 0.5rem; }
+
+  .clear-btn {
+    margin-top: 0.75rem; min-height: 2.25rem; padding: 0 0.85rem; font: inherit; font-size: var(--text-sm);
+    color: var(--foreground); background: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
+  }
+
+  @media (max-width: 640px) {
+    .search-wrap { max-width: none; }
+    th, td { padding: 0.5rem 0.6rem; }
+  }
 </style>

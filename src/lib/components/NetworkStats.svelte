@@ -49,21 +49,20 @@
   }
 
   .net-icon { display: flex; }
-  .net-icon.rx { color: #8bb3fa; }
-  .net-icon.tx { color: #56d4a0; }
+  .net-icon.rx { color: var(--series-1); }
+  .net-icon.tx { color: var(--series-2); }
 
   .net-stat-info { display: flex; flex-direction: column; }
 
   .net-stat-label {
-    font-size: 0.55rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+
     font-weight: 500;
   }
 
   .net-stat-value {
-    font-size: 0.75rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     font-family: 'Geist Mono', monospace;
     font-variant-numeric: tabular-nums;

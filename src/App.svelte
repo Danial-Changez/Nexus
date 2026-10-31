@@ -1,24 +1,39 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { fade } from 'svelte/transition'
+  import { onMount, tick } from 'svelte'
   import Sidebar from './lib/components/Sidebar.svelte'
+  import Palette from './lib/components/Palette.svelte'
   import Overview from './pages/Overview.svelte'
   import Metrics from './pages/Metrics.svelte'
   import Services from './pages/Services.svelte'
   import Containers from './pages/Containers.svelte'
   import Network from './pages/Network.svelte'
   import Media from './pages/Media.svelte'
-  import { SVC_ICON, type Host, type HostData, type ServiceGroup, type ServiceItem, type ServiceStatus, type WolConfig, type WolStatus } from './lib/types.js'
+  import { poll } from './lib/utils/poll.js'
+  import { hashPage } from './lib/utils/hash.js'
+  import { PAGE_IDS } from './lib/pages.js'
+  import { SVC_ICON, type Check, type Host, type HostData, type ServiceGroup, type ServiceItem, type ServiceStatus, type WolConfig, type WolStatus } from './lib/types.js'
 
-  const VALID_PAGES = new Set(['overview', 'metrics', 'services', 'containers', 'network', 'media'])
-  const initialHash = window.location.hash.slice(1)
-  let activePage = $state(VALID_PAGES.has(initialHash) ? initialHash : 'overview')
+  const NET_SAMPLES = 60
+
+  let activePage = $state(PAGE_IDS.includes(hashPage()) ? hashPage() : 'overview')
   let collapsed = $state(false)
-  let mobileOpen = $state(false)
+  let paletteOpen = $state(false)
 
   $effect(() => {
-    if (window.location.hash !== `#${activePage}`) window.location.hash = activePage
+    if (hashPage() !== activePage) location.hash = activePage
   })
+
+  function showPage(page: string) {
+    if (page === activePage || !PAGE_IDS.includes(page)) return
+    if (!document.startViewTransition) {
+      activePage = page
+      return
+    }
+    document.startViewTransition(() => {
+      activePage = page
+      return tick()
+    })
+  }
 
   // ── Config (loaded from server) ──
   let hosts = $state<Host[]>([])
@@ -51,7 +66,6 @@
 
   // ── Telemetry State ──
   let hostData = $state<Map<string, HostData>>(new Map())
-  let onlineCount = $state(0)
 
   async function fetchHost(host: Host): Promise<HostData> {
     try {
@@ -88,7 +102,7 @@
         if (ch.system) cpuHistory.system = ch.system.map((p: [string, number]) => p[1])
       }
 
-      return { cpu: c, mem: m, fs: Array.isArray(f) ? f[0] : f, net, cpuHistory, cpuTimestamps, uptime: up }
+      return { cpu: c, mem: m, fs: Array.isArray(f) ? f[0] : f, net, cpuHistory, cpuTimestamps, uptime: up, updatedAt: Date.now() }
     } catch {
       return { error: true }
     }
@@ -97,36 +111,36 @@
   async function refreshHosts() {
     if (!hosts.length) return
     const results = await Promise.all(
-      hosts.map(async (h: Host): Promise<[string, HostData]> => [h.key, await fetchHost(h)])
+      hosts.map(async (h: Host): Promise<[string, HostData]> => {
+        const prev = hostData.get(h.key)
+        const next = await fetchHost(h)
+        // Keep the last good values on failure, marked stale
+        if (next.error) return [h.key, prev?.updatedAt ? { ...prev, stale: true } : next]
+        const sample = (next.net?.rx ?? 0) + (next.net?.tx ?? 0)
+        return [h.key, { ...next, netHistory: [...(prev?.netHistory ?? []), sample].slice(-NET_SAMPLES) }]
+      })
     )
     hostData = new Map(results)
-    onlineCount = [...hostData.values()].filter(d => d && !d.error).length
   }
 
-  // ── Service Status ──
+  // ── Service Status (checked server-side, see server/status.ts) ──
   let serviceStatus = $state<Map<string, ServiceStatus>>(new Map())
 
-  async function checkService(svc: ServiceItem): Promise<ServiceStatus> {
-    const start = performance.now()
-    try {
-      await fetch(svc.href, { mode: 'no-cors', cache: 'no-store' })
-      return { status: 'up', latency: Math.round(performance.now() - start) }
-    } catch {
-      return { status: 'down', latency: null }
-    }
+  function toStatus(history: Check[]): ServiceStatus {
+    const last = history.at(-1)
+    if (!last) return { status: 'checking', latency: null, history }
+    let downSince: number | undefined
+    for (let i = history.length - 1; i >= 0 && !history[i].up; i--) downSince = history[i].at
+    return { status: last.up ? 'up' : 'down', latency: last.latency, history, downSince }
   }
 
   async function refreshServices() {
-    if (!services.length) return
-    const allItems = services.flatMap(g => g.items)
-    const results = await Promise.allSettled(
-      allItems.map(async (svc: ServiceItem): Promise<[string, ServiceStatus]> => [svc.href, await checkService(svc)])
-    )
-    const newMap = new Map<string, ServiceStatus>()
-    for (const r of results) {
-      if (r.status === 'fulfilled') newMap.set(r.value[0], r.value[1])
-    }
-    serviceStatus = newMap
+    try {
+      const res = await fetch('/api/status')
+      if (!res.ok) return
+      const data: Record<string, Check[]> = await res.json()
+      serviceStatus = new Map(Object.entries(data).map(([href, h]) => [href, toStatus(h)]))
+    } catch { /* keep last known; StatusLine shows its age */ }
   }
 
   // ── WoL Status ──
@@ -140,61 +154,65 @@
     } catch { /* ignore */ }
   }
 
+  // ── Keyboard: ⌘K / Ctrl+K or / opens the palette, 1–6 jump to pages ──
+  function onKeydown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault()
+      paletteOpen = !paletteOpen
+      return
+    }
+    const target = e.target as HTMLElement
+    if (paletteOpen || e.metaKey || e.ctrlKey || e.altKey || target.closest('input, textarea, select, [contenteditable], dialog')) return
+    if (e.key === '/') {
+      e.preventDefault()
+      paletteOpen = true
+    } else if (/^[1-6]$/.test(e.key)) {
+      location.hash = PAGE_IDS[+e.key - 1]
+    }
+  }
+
   // ── Init & Intervals ──
   onMount(() => {
-    const onHashChange = () => {
-      const page = window.location.hash.slice(1)
-      if (VALID_PAGES.has(page)) activePage = page
-    }
+    const onHashChange = () => showPage(hashPage())
     window.addEventListener('hashchange', onHashChange)
+    let stops: (() => void)[] = []
     loadConfig().then(() => {
-      refreshHosts()
-      refreshServices()
-      refreshWolStatus()
+      stops = [
+        poll(refreshHosts, 10000),
+        poll(refreshServices, 30000),
+        poll(refreshWolStatus, 10000),
+      ]
     })
-    const hostInterval = setInterval(refreshHosts, 10000)
-    const svcInterval = setInterval(refreshServices, 30000)
-    const wolInterval = setInterval(refreshWolStatus, 10000)
     return () => {
       window.removeEventListener('hashchange', onHashChange)
-      clearInterval(hostInterval)
-      clearInterval(svcInterval)
-      clearInterval(wolInterval)
+      stops.forEach(stop => stop())
     }
   })
 </script>
 
-<div class="app-layout">
-  <Sidebar bind:activePage bind:collapsed bind:mobileOpen />
+<svelte:window onkeydown={onKeydown} />
 
-  <button class="mobile-menu-btn" onclick={() => mobileOpen = !mobileOpen} aria-label="Menu">
-    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-      <line x1="3" y1="5" x2="17" y2="5" />
-      <line x1="3" y1="10" x2="17" y2="10" />
-      <line x1="3" y1="15" x2="17" y2="15" />
-    </svg>
-  </button>
+<div class="app-layout">
+  <Sidebar {activePage} bind:collapsed onsearch={() => paletteOpen = true} />
 
   <main class="main-content" class:sidebar-collapsed={collapsed}>
-    {#key activePage}
-      <div in:fade={{ duration: 150 }}>
-        {#if activePage === 'overview'}
-          <Overview {hosts} {services} {overviewServiceNames} {hostData} {onlineCount} {serviceStatus} {wolConfig} {wolStatus} />
-        {:else if activePage === 'metrics'}
-          <Metrics {hosts} {hostData} {onlineCount} />
-        {:else if activePage === 'services'}
-          <Services {services} {serviceStatus} />
-        {:else if activePage === 'containers'}
-          <Containers {hosts} />
-        {:else if activePage === 'network'}
-          <Network {hosts} />
-        {:else if activePage === 'media'}
-          <Media />
-        {/if}
-      </div>
-    {/key}
+    {#if activePage === 'overview'}
+      <Overview {hosts} {services} {overviewServiceNames} {hostData} {serviceStatus} {wolConfig} {wolStatus} />
+    {:else if activePage === 'metrics'}
+      <Metrics {hosts} {hostData} />
+    {:else if activePage === 'services'}
+      <Services {services} {serviceStatus} />
+    {:else if activePage === 'containers'}
+      <Containers {hosts} />
+    {:else if activePage === 'network'}
+      <Network {hosts} />
+    {:else if activePage === 'media'}
+      <Media />
+    {/if}
   </main>
 </div>
+
+<Palette bind:open={paletteOpen} {services} {serviceStatus} />
 
 <style>
   .app-layout {
@@ -226,37 +244,12 @@
     }
   }
 
-  .mobile-menu-btn {
-    display: none;
-  }
-
   @media (max-width: 480px) {
-    .main-content {
+    .main-content,
+    .main-content.sidebar-collapsed {
       margin-left: 0;
       max-width: 100vw;
-      padding: 3.5rem 1rem 1rem;
-    }
-
-    .mobile-menu-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: fixed;
-      top: 0.75rem;
-      left: 0.75rem;
-      z-index: 150;
-      width: 36px;
-      height: 36px;
-      background: var(--sidebar-bg);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--muted-foreground);
-      cursor: pointer;
-      transition: color 150ms ease;
-    }
-
-    .mobile-menu-btn:hover {
-      color: var(--foreground);
+      padding: 1rem 1rem calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 1rem);
     }
   }
 </style>

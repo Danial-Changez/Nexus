@@ -44,14 +44,16 @@ A homelab dashboard built with Svelte 5 and Express 5. Monitors host resources v
 ## Features
 
 - **Host metrics** — CPU, memory, disk, and uptime from Glances API endpoints
-- **Service monitoring** — uptime checks with latency for all configured services
+- **Service monitoring** — the server checks every service every 30s (5xx or no response = down) and keeps the last 30 results for the heartbeat strip and latency sparkline
 - **Container overview** — Docker containers across all hosts with CPU/memory stats
 - **Network traffic** — per-interface bandwidth with sparkline history charts
 - **Pi-hole stats** — DNS query stats via server-side proxy
 - **Media stack** — qBittorrent, NZBGet, Sonarr, Radarr, Prowlarr stats via server-side proxy
 - **Wake-on-LAN** — Wake/shutdown remote machines via Pi-hole MAC lookup + UDP magic packet
 - **Video downloader** — Live download progress for custom Turkish episode fetcher
-- **Dark theme** — OKLCH color tokens, minimal UI
+- **Status at a glance** — the Overview opens with one sentence naming anything that's down; stale data is kept but marked with its age
+- **Keyboard** — `⌘K`/`Ctrl+K` or `/` searches pages and services, `1`–`6` jump to pages; ranges, sorts and searches live in the URL
+- **Dark theme** — OKLCH tokens with separate status (`--ok/--warn/--crit`) and data-series colors; override `--text-*` on `:root` to scale the UI for a wall display
 
 ## Quick Start
 
@@ -131,6 +133,7 @@ nexus/
 │   ├── media-proxy.ts      # qBit, NZBGet, Sonarr, Radarr, Prowlarr aggregate
 │   ├── video-dl-proxy.ts   # Custom video downloader status
 │   ├── wol.ts              # Wake-on-LAN via Pi-hole MAC lookup + UDP
+│   ├── status.ts           # Server-side service checks + history (/api/status)
 │   ├── env.ts              # Loads .env from config dir
 │   └── log.ts              # Structured logger
 ├── src/

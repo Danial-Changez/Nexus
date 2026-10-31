@@ -1,5 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { untrack } from 'svelte'
+  import { poll } from '../lib/utils/poll.js'
+  import { getParam, setParam } from '../lib/utils/hash.js'
   import type { Host } from '../lib/types.js'
   import { fmtRate, fmt } from '../lib/utils/format.js'
   import { cutoffIndex } from '../lib/utils/chart.js'
@@ -33,7 +35,8 @@
     { label: '6h',  seconds: 21600 },
     { label: '24h', seconds: 86400 },
   ]
-  let activeLabel = $state('1h')
+  let activeLabel = $state(getParam('range') ?? '1h')
+  $effect(() => setParam('range', activeLabel === '1h' ? null : activeLabel))
   let activeRange = $derived(RANGES.find(r => r.label === activeLabel) ?? RANGES[2])
 
   // Mutable history store (not reactive — we snapshot it into state when needed)
@@ -154,11 +157,13 @@
     snapshotHistory()
   }
 
-  onMount(() => {
-    fetchNetworkHistory()
-    fetchNetwork()
-    const interval = setInterval(fetchNetwork, POLL_INTERVAL)
-    return () => clearInterval(interval)
+  // Hosts arrive with the config; start polling once they're known
+  $effect(() => {
+    if (!hosts.length) return
+    return untrack(() => {
+      fetchNetworkHistory()
+      return poll(fetchNetwork, POLL_INTERVAL)
+    })
   })
 
   // Total bandwidth: exclude docker VM — its ens18 traffic is already carried by proxmox nic0
@@ -170,12 +175,12 @@
   )
 </script>
 
-<PageHeader title="Network" subtitle="Interface Traffic across all Hosts">
+<PageHeader title="Network">
   <div class="page-stat">
     <span class="stat-icon rx"><Icon name="arrowDown" size="18px" /></span>
     <div>
       <div class="page-stat-value rx">{fmtRate(totals.rx)}</div>
-      <div class="page-stat-label">Total RX</div>
+      <div class="page-stat-label">Total download</div>
     </div>
   </div>
   <div class="page-divider"></div>
@@ -183,7 +188,7 @@
     <span class="stat-icon tx"><Icon name="arrowUp" size="18px" /></span>
     <div>
       <div class="page-stat-value tx">{fmtRate(totals.tx)}</div>
-      <div class="page-stat-label">Total TX</div>
+      <div class="page-stat-label">Total upload</div>
     </div>
   </div>
 </PageHeader>
@@ -206,7 +211,7 @@
     </div>
 
     {#if interfaces.length === 0}
-      <div class="empty-hint loading-pulse">{loading ? 'Loading...' : 'Host unreachable'}</div>
+      <div class="empty-hint" class:loading-pulse={loading}>{loading ? 'Loading…' : `Glances on ${host.name} isn't responding.`}</div>
     {:else}
       {#each interfaces as iface (iface.interface_name)}
         {@const hist = historySnapshot?.get(host.key)?.get(iface.interface_name)}
@@ -250,20 +255,21 @@
           {#if hist && hist.rx.length > 0}
             <div class="iface-chart">
               <div class="chart-header">
-                <span class="chart-title">Traffic History</span>
+                <h3 class="chart-title">Traffic history</h3>
                 <div class="chart-legend">
-                  <span class="legend-item"><span class="legend-dot rx"></span>RX</span>
-                  <span class="legend-item"><span class="legend-dot tx"></span>TX</span>
+                  <span class="legend-item"><span class="legend-dot rx"></span>Download</span>
+                  <span class="legend-item"><span class="legend-dot tx"></span>Upload</span>
                 </div>
               </div>
               <Sparkline
-                series={[{ points: hist.tx, color: 'purple' }, { points: hist.rx, color: 'green' }]}
+                series={[{ points: hist.tx, color: 'series2' }, { points: hist.rx, color: 'series1' }]}
+                label="{host.name} {iface.interface_name} traffic. Peak download {fmtRate(Math.max(0, ...hist.rx))}, peak upload {fmtRate(Math.max(0, ...hist.tx))}"
                 timestamps={hist.ts}
                 fmtAxis={fmt}
                 height="250px"
                 rows={i => [
-                  { dot: 'green', label: 'RX', value: fmtRate(hist.rx[i] ?? 0) },
-                  { dot: 'purple', label: 'TX', value: fmtRate(hist.tx[i] ?? 0) },
+                  { dot: 'series1', label: 'Download', value: fmtRate(hist.rx[i] ?? 0) },
+                  { dot: 'series2', label: 'Upload', value: fmtRate(hist.tx[i] ?? 0) },
                 ]}
               />
             </div>
@@ -283,16 +289,16 @@
   }
 
   .stat-icon { display: flex; }
-  .stat-icon.rx { color: #8bb3fa; }
-  .stat-icon.tx { color: #56d4a0; }
+  .stat-icon.rx { color: var(--series-1); }
+  .stat-icon.tx { color: var(--series-2); }
 
   .page-stat-value {
-    font-size: 1.1rem;
+    font-size: var(--text-lg);
     font-family: 'Geist Mono', monospace;
   }
 
-  .page-stat-value.rx { color: var(--chart-2); }
-  .page-stat-value.tx { color: var(--primary); }
+  .page-stat-value.rx { color: var(--foreground); }
+  .page-stat-value.tx { color: var(--foreground); }
 
   .controls-bar {
     display: flex;
@@ -308,10 +314,9 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.7rem;
+    font-size: var(--text-xs);
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+
     color: var(--muted-foreground);
     margin-bottom: 0.75rem;
     padding-left: 2px;
@@ -320,8 +325,7 @@
   .host-label-icon { display: flex; color: var(--muted-foreground); }
 
   .host-iface-count {
-    font-family: 'Geist Mono', monospace;
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     font-weight: 400;
     text-transform: none;
     letter-spacing: normal;
@@ -345,26 +349,26 @@
   }
 
   .iface-icon { display: flex; color: var(--muted-foreground); }
-  .iface-icon.physical { color: #8bb3fa; }
+  .iface-icon.physical { color: var(--foreground); }
 
   .iface-name {
-    font-size: 0.85rem;
+    font-size: var(--text-md);
     font-weight: 600;
     font-family: 'Geist Mono', monospace;
   }
 
   .iface-badge {
     margin-left: auto;
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     padding: 2px 8px;
     border-radius: 9999px;
     font-weight: 500;
   }
 
   .iface-badge.up {
-    background: color-mix(in oklch, var(--chart-2) 12%, transparent);
-    color: var(--chart-2);
-    border: 1px solid color-mix(in oklch, var(--chart-2) 25%, transparent);
+    background: color-mix(in oklch, var(--ok) 12%, transparent);
+    color: var(--ok);
+    border: 1px solid color-mix(in oklch, var(--ok) 25%, transparent);
   }
 
   .iface-badge.down {
@@ -389,20 +393,19 @@
   }
 
   .rate-icon { display: flex; }
-  .rate-icon.rx { color: #8bb3fa; }
-  .rate-icon.tx { color: #56d4a0; }
+  .rate-icon.rx { color: var(--series-1); }
+  .rate-icon.tx { color: var(--series-2); }
   .rate-info { display: flex; flex-direction: column; }
 
   .rate-label {
-    font-size: 0.55rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+
     font-weight: 500;
   }
 
   .rate-value {
-    font-size: 0.85rem;
+    font-size: var(--text-md);
     font-weight: 700;
     font-family: 'Geist Mono', monospace;
     font-variant-numeric: tabular-nums;
@@ -411,7 +414,7 @@
 
   .rate-total {
     margin-left: auto;
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     font-family: 'Geist Mono', monospace;
     color: var(--muted-foreground);
     opacity: 0.7;
@@ -431,10 +434,9 @@
   }
 
   .chart-title {
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+
     font-weight: 500;
   }
 
@@ -447,9 +449,8 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
-    font-family: 'Geist Mono', monospace;
   }
 
   .legend-dot {
@@ -458,11 +459,11 @@
     border-radius: 2px;
   }
 
-  .legend-dot.rx { background: var(--chart-2); }
-  .legend-dot.tx { background: var(--primary); }
+  .legend-dot.rx { background: var(--series-1); }
+  .legend-dot.tx { background: var(--series-2); }
 
   .empty-hint {
-    font-size: 0.75rem;
+    font-size: var(--text-sm);
     color: var(--muted-foreground);
     padding: 1rem 0;
   }

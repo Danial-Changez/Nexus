@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ServiceGroup, ServiceStatus } from '../lib/types.js'
-  import ServiceCard from '../lib/components/ServiceCard.svelte'
+  import { downFirst } from '../lib/utils/services.js'
+  import ServiceRow from '../lib/components/ServiceRow.svelte'
   import PageHeader from '../lib/components/PageHeader.svelte'
 
   interface Props {
@@ -11,53 +12,31 @@
   let { services = [], serviceStatus = new Map() }: Props = $props()
 
   let totalServices = $derived(services.reduce((sum, g) => sum + g.items.length, 0))
-  let servicesUp = $derived(
-    [...serviceStatus.values()].filter(s => s.status === 'up').length
-  )
+  let down = $derived([...serviceStatus.values()].filter(s => s.status === 'down').length)
+  let up = $derived([...serviceStatus.values()].filter(s => s.status === 'up').length)
 </script>
 
-<PageHeader title="Services" subtitle="All Local Services with Status Monitoring">
+<PageHeader title="Services" subtitle="Checked every 30 seconds from the Nexus server">
   <div class="page-stat">
-    <div class="page-stat-value up">{servicesUp}</div>
-    <div class="page-stat-label">Up</div>
-  </div>
-  <div class="page-divider"></div>
-  <div class="page-stat">
-    <div class="page-stat-value">{totalServices}</div>
-    <div class="page-stat-label">Total</div>
+    {#if down}
+      <div class="page-stat-value down">{down} down</div>
+    {:else}
+      <div class="page-stat-value up">{up} up</div>
+    {/if}
+    <div class="page-stat-label">of {totalServices} services</div>
   </div>
 </PageHeader>
 
 {#each services as group (group.section)}
-  <div class="section-title">{group.section}</div>
-  <div class="links-grid">
-    {#each group.items as svc (svc.href)}
-      {@const svcState = serviceStatus.get(svc.href)}
-      <ServiceCard
-        service={svc}
-        status={svcState?.status ?? 'checking'}
-        latency={svcState?.latency}
-      />
+  <h2 class="section-title">{group.section}</h2>
+  <div class="list-surface">
+    {#each downFirst(group.items, serviceStatus) as svc (svc.href)}
+      <ServiceRow service={svc} status={serviceStatus.get(svc.href)} />
     {/each}
   </div>
 {/each}
 
 <style>
-  .page-stat-value.up { color: var(--chart-2); }
-
-  .section-title {
-    font-size: 0.7rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--muted-foreground);
-    margin: 1.75rem 0 0.75rem;
-    padding-left: 2px;
-  }
-
-  .links-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 0.65rem;
-  }
+  .page-stat-value.up { color: var(--ok); }
+  .page-stat-value.down { color: var(--crit); }
 </style>

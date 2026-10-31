@@ -20,7 +20,7 @@ export function initCanvas(canvasEl: HTMLCanvasElement): { ctx: CanvasRenderingC
 
 /** Measure widest y-axis label and return a dynamic left padding value. */
 export function dynamicLeftPad(ctx: CanvasRenderingContext2D, maxVal: number, steps: number, formatter: (v: number) => string): number {
-  ctx.font = '9px "Geist Mono", monospace'
+  ctx.font = '11px "Geist", system-ui, sans-serif'
   let maxW = 0
   for (let i = 0; i <= steps; i++) {
     const label = formatter((maxVal / steps) * i)
@@ -33,7 +33,7 @@ export function dynamicLeftPad(ctx: CanvasRenderingContext2D, maxVal: number, st
 export function drawGrid(ctx: CanvasRenderingContext2D, pad: Pad, w: number, h: number, maxVal: number, steps: number, formatter: (v: number) => string): void {
   ctx.textAlign = 'right'
   ctx.textBaseline = 'middle'
-  ctx.font = '9px "Geist Mono", monospace'
+  ctx.font = '11px "Geist", system-ui, sans-serif'
   for (let i = 0; i <= steps; i++) {
     const val = (maxVal / steps) * i
     const y = pad.t + h - (i / steps) * h
@@ -51,7 +51,7 @@ export function drawGrid(ctx: CanvasRenderingContext2D, pad: Pad, w: number, h: 
 /** Draw x-axis time labels evenly spaced. */
 export function drawXLabels(ctx: CanvasRenderingContext2D, pad: Pad, w: number, h: number, timestamps: string[]): void {
   if (timestamps.length < 2) return
-  ctx.font = '9px "Geist Mono", monospace'
+  ctx.font = '11px "Geist", system-ui, sans-serif'
   ctx.textBaseline = 'top'
   ctx.fillStyle = 'oklch(0.705 0.015 286.067)'
   const n = Math.min(5, timestamps.length)

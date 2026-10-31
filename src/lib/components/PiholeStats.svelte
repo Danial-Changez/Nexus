@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { poll } from '../utils/poll.js'
+  import Freshness from './Freshness.svelte'
   import { SVC_ICON } from '../types.js'
   import Icon from './Icon.svelte'
 
@@ -9,8 +11,10 @@
     clients?: { total?: number; active?: number }
   }
 
+  const POLL_MS = 30000
   let stats = $state<PiholeStatsData | null>(null)
   let error = $state<string | null>(null)
+  let updatedAt = $state<number | null>(null)
 
   async function fetchStats() {
     try {
@@ -18,16 +22,13 @@
       if (!res.ok) throw new Error(`${res.status}`)
       stats = await res.json()
       error = null
+      updatedAt = Date.now()
     } catch (e) {
       error = e instanceof Error ? e.message : 'Unknown error'
     }
   }
 
-  onMount(() => {
-    fetchStats()
-    const interval = setInterval(fetchStats, 30000)
-    return () => clearInterval(interval)
-  })
+  onMount(() => poll(fetchStats, POLL_MS))
 
   let blockedPercent = $derived(stats?.queries?.percent_blocked ?? 0)
   let totalQueries = $derived(stats?.queries?.total ?? 0)
@@ -39,26 +40,29 @@
 
 <div class="pihole-section">
   <div class="pihole-header">
-    <img src="{SVC_ICON}/pi-hole.svg" alt="Pi-hole" class="pihole-icon" />
+    <img src="{SVC_ICON}/pi-hole.svg" alt="" class="pihole-icon" width="28" height="28" />
     <div>
       <span class="pihole-title">Pi-hole</span>
-      <span class="pihole-subtitle">DNS & Ad Blocking</span>
+      <span class="pihole-subtitle">DNS and ad blocking</span>
     </div>
-    {#if stats && !error}
-      <span class="pihole-badge online">Active</span>
-    {:else if error}
-      <span class="pihole-badge offline">Unreachable</span>
-    {:else}
-      <span class="pihole-badge loading">Loading</span>
-    {/if}
+    <span class="pihole-status">
+      {#if stats && !error}
+        <span class="pihole-badge online">Active</span>
+      {:else if error}
+        <span class="pihole-badge offline">Unreachable</span>
+      {:else}
+        <span class="pihole-badge loading">Loading…</span>
+      {/if}
+      <Freshness {updatedAt} failing={!!error} interval={POLL_MS} />
+    </span>
   </div>
 
-  {#if stats && !error}
+  {#if stats}
     <div class="pihole-stats">
       <div class="pihole-stat-card queries">
         <div class="stat-header">
           <span class="stat-icon queries"><Icon name="chart" size="13px" /></span>
-          <span class="stat-label">Queries Today</span>
+          <span class="stat-label">Queries today</span>
         </div>
         <span class="stat-value">{totalQueries.toLocaleString()}</span>
       </div>
@@ -72,7 +76,7 @@
       <div class="pihole-stat-card domains">
         <div class="stat-header">
           <span class="stat-icon domains"><Icon name="database" size="13px" /></span>
-          <span class="stat-label">Domains on Blocklist</span>
+          <span class="stat-label">Domains on blocklist</span>
         </div>
         <span class="stat-value">{domainsBlocked.toLocaleString()}</span>
       </div>
@@ -87,7 +91,7 @@
 
     <div class="bar-section">
       <div class="bar-row">
-        <span class="bar-label">Block Rate</span>
+        <span class="bar-label">Block rate</span>
         <span class="bar-value blocked">{blockedPercent.toFixed(1)}%</span>
       </div>
       <div class="bar-track">
@@ -97,7 +101,7 @@
 
     <div class="bar-section">
       <div class="bar-row">
-        <span class="bar-label">Active Clients</span>
+        <span class="bar-label">Active clients</span>
         <span class="bar-value clients">{uniqueClients}/{clientsEverSeen}</span>
       </div>
       <div class="bar-track">
@@ -105,9 +109,9 @@
       </div>
     </div>
   {:else if error}
-    <div class="pihole-error">Unable to reach Pi-hole API</div>
+    <div class="pihole-error">Couldn't reach the Pi-hole API ({error}). Check PIHOLE_URL and PIHOLE_PASSWORD in .env.</div>
   {:else}
-    <div class="pihole-error loading-pulse">Loading stats...</div>
+    <div class="pihole-error loading-pulse">Loading…</div>
   {/if}
 </div>
 
@@ -129,29 +133,35 @@
   .pihole-icon { width: 28px; height: 28px; }
 
   .pihole-title {
-    font-size: 0.95rem;
+    font-size: var(--text-md);
     font-weight: 600;
     display: block;
   }
 
   .pihole-subtitle {
-    font-size: 0.65rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
-    font-family: 'Geist Mono', monospace;
+  }
+
+  .pihole-status {
+    margin-left: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
   }
 
   .pihole-badge {
-    margin-left: auto;
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     padding: 2px 8px;
     border-radius: 9999px;
     font-weight: 500;
   }
 
   .pihole-badge.online {
-    background: color-mix(in oklch, var(--chart-2) 12%, transparent);
-    color: var(--chart-2);
-    border: 1px solid color-mix(in oklch, var(--chart-2) 25%, transparent);
+    background: color-mix(in oklch, var(--ok) 12%, transparent);
+    color: var(--ok);
+    border: 1px solid color-mix(in oklch, var(--ok) 25%, transparent);
   }
 
   .pihole-badge.offline {
@@ -189,35 +199,26 @@
     gap: 0.4rem;
   }
 
-  .stat-icon { display: flex; }
-  .stat-icon.queries { color: #8bb3fa; }
-  .stat-icon.blocked { color: #ef4444; }
-  .stat-icon.domains { color: #e9b74a; }
-  .stat-icon.clients { color: #56d4a0; }
+  .stat-icon { display: flex; color: var(--muted-foreground); }
 
   .stat-label {
-    font-size: 0.55rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+
     font-weight: 600;
   }
 
   .stat-value {
-    font-size: 1.1rem;
+    font-size: var(--text-lg);
     font-weight: 700;
     font-family: 'Geist Mono', monospace;
     font-variant-numeric: tabular-nums;
     color: var(--foreground);
   }
 
-  .pihole-stat-card.queries .stat-value { color: var(--chart-1); }
-  .pihole-stat-card.blocked .stat-value { color: oklch(0.637 0.237 25.331); }
-  .pihole-stat-card.domains .stat-value { color: var(--chart-3); }
-  .pihole-stat-card.clients .stat-value { color: var(--chart-2); }
 
   .stat-total {
-    font-size: 0.7rem;
+    font-size: var(--text-xs);
     font-weight: 500;
     color: var(--muted-foreground);
   }
@@ -240,22 +241,21 @@
   }
 
   .bar-label {
-    font-size: 0.6rem;
+    font-size: var(--text-xs);
     color: var(--muted-foreground);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+
     font-weight: 600;
   }
 
   .bar-value {
-    font-size: 0.75rem;
+    font-size: var(--text-sm);
     font-weight: 600;
     font-family: 'Geist Mono', monospace;
     font-variant-numeric: tabular-nums;
   }
 
-  .bar-value.blocked { color: oklch(0.637 0.237 25.331); }
-  .bar-value.clients { color: var(--chart-2); }
+  .bar-value.blocked { color: var(--series-2); }
+  .bar-value.clients { color: var(--series-1); }
 
   .bar-track {
     height: 6px;
@@ -270,11 +270,11 @@
     transition: width 0.8s ease;
   }
 
-  .bar-fill.blocked { background: oklch(0.637 0.237 25.331); }
-  .bar-fill.clients { background: var(--chart-2); }
+  .bar-fill.blocked { background: var(--series-2); }
+  .bar-fill.clients { background: var(--series-1); }
 
   .pihole-error {
-    font-size: 0.8rem;
+    font-size: var(--text-sm);
     color: var(--muted-foreground);
     text-align: center;
     padding: 1rem;
