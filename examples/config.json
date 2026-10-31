@@ -1,0 +1,32 @@
+{
+  "services": [
+    {
+      "section": "Infrastructure",
+      "items": [
+        { "name": "Pi-hole",   "icon": "pi-hole",   "href": "https://pihole.example.com",   "desc": "DNS & DHCP" },
+        { "name": "Proxmox",   "icon": "proxmox",   "href": "https://proxmox.example.com",  "desc": "Hypervisor" },
+        { "name": "TrueNAS",   "icon": "truenas",   "href": "https://truenas.example.com",  "desc": "NAS Storage" },
+        { "name": "WireGuard", "icon": "wireguard",  "href": "https://wg.example.com",       "desc": "VPN" }
+      ]
+    },
+    {
+      "section": "Media",
+      "items": [
+        { "name": "Plex",        "icon": "plex",        "href": "https://plex.example.com",        "desc": "Media Server" },
+        { "name": "Sonarr",      "icon": "sonarr",      "href": "https://sonarr.example.com",      "desc": "TV Shows" },
+        { "name": "Radarr",      "icon": "radarr",      "href": "https://radarr.example.com",      "desc": "Movies" },
+        { "name": "qBittorrent", "icon": "qbittorrent", "href": "https://qbittorrent.example.com", "desc": "Torrent Client" }
+      ]
+    }
+  ],
+  "hosts": [
+    { "name": "Docker VM", "key": "docker",  "url": "https://glances-docker.example.com" },
+    { "name": "Proxmox",   "key": "proxmox", "url": "https://glances-proxmox.example.com" },
+    { "name": "TrueNAS",   "key": "truenas", "url": "https://glances-truenas.example.com" }
+  ],
+  "overview_services": ["Proxmox", "Pi-hole", "TrueNAS", "Plex"],
+  "wol": {
+    "name": "My PC",
+    "hostname": "my-pc.lan"
+  }
+}
