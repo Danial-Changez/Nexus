@@ -16,9 +16,11 @@
   let timeStr = $derived(timeFmt.format(clock.now))
   let dateStr = $derived(dateFmt.format(clock.now))
 
-  // Phone tab bar: first four pages as tabs, the rest behind "More"
-  const TAB_COUNT = 4
-  let moreActive = $derived(PAGES.slice(TAB_COUNT).some(p => p.id === activePage))
+  // Phone tab bar: four tabs, the rest behind "More"
+  const TAB_IDS = ['overview', 'metrics', 'services', 'network']
+  const TABS = PAGES.filter(p => TAB_IDS.includes(p.id))
+  const MORE = PAGES.filter(p => !TAB_IDS.includes(p.id))
+  let moreActive = $derived(MORE.some(p => p.id === activePage))
   let moreEl = $state<HTMLElement | null>(null)
 </script>
 
@@ -72,7 +74,7 @@
 </aside>
 
 <nav class="tabbar" aria-label="Pages">
-  {#each PAGES.slice(0, TAB_COUNT) as item (item.id)}
+  {#each TABS as item (item.id)}
     <a href="#{item.id}" class="tab" class:active={activePage === item.id} aria-current={activePage === item.id ? 'page' : undefined}>
       <Icon name={item.icon} size="20px" />
       <span>{item.label}</span>
@@ -83,7 +85,7 @@
     <span>More</span>
   </button>
   <div id="tab-more" class="tab-more" popover bind:this={moreEl}>
-    {#each PAGES.slice(TAB_COUNT) as item (item.id)}
+    {#each MORE as item (item.id)}
       <a href="#{item.id}" class="more-item" class:active={activePage === item.id} onclick={() => moreEl?.hidePopover()}>
         <Icon name={item.icon} size="18px" />{item.label}
       </a>

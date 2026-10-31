@@ -8,15 +8,16 @@
     hostData: Map<string, HostData>
     services: ServiceItem[]
     serviceStatus: Map<string, ServiceStatus>
+    upstreamProblems?: string[]   // Pi-hole / media APIs returning errors
   }
 
-  let { hosts, hostData, services, serviceStatus }: Props = $props()
+  let { hosts, hostData, services, serviceStatus, upstreamProblems = [] }: Props = $props()
 
   let downServices = $derived(services.filter(s => serviceStatus.get(s.href)?.status === 'down'))
   let badHosts = $derived(hosts.filter(h => { const d = hostData.get(h.key); return d?.error || d?.stale }))
   let upCount = $derived(services.filter(s => serviceStatus.get(s.href)?.status === 'up').length)
   let checking = $derived(!serviceStatus.size && !hostData.size)
-  let problems = $derived(downServices.length + badHosts.length)
+  let problems = $derived(downServices.length + badHosts.length + upstreamProblems.length)
 
   let lastCheck = $derived(Math.max(0, ...[...serviceStatus.values()].map(s => s.history.at(-1)?.at ?? 0)))
 
@@ -24,7 +25,8 @@
     if (checking) return 'Checking…'
     if (!problems) return 'All systems normal'
     if (problems === 1 && downServices.length) return `${downServices[0].name} is down`
-    if (problems === 1) return `${badHosts[0].name} is not responding`
+    if (problems === 1 && badHosts.length) return `${badHosts[0].name} is not responding`
+    if (problems === 1) return `${upstreamProblems[0]} API isn't responding`
     return `${problems} problems`
   })
 
@@ -40,6 +42,7 @@
     const parts = []
     if (downServices.length) parts.push(`${downServices.map(s => s.name).join(', ')} down`)
     if (badHosts.length) parts.push(`${badHosts.map(h => h.name).join(', ')} not responding`)
+    if (upstreamProblems.length) parts.push(`${upstreamProblems.join(', ')} API errors`)
     return parts.join(' · ')
   })
 </script>

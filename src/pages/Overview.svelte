@@ -12,11 +12,12 @@
     overviewServiceNames?: string[]
     hostData?: Map<string, HostData>
     serviceStatus?: Map<string, ServiceStatus>
+    upstreamProblems?: string[]
     wolConfig?: WolConfig | null
     wolStatus?: WolStatus | null
   }
 
-  let { hosts = [], services = [], overviewServiceNames = [], hostData = new Map(), serviceStatus = new Map(), wolConfig = null, wolStatus = null }: Props = $props()
+  let { hosts = [], services = [], overviewServiceNames = [], hostData = new Map(), serviceStatus = new Map(), upstreamProblems = [], wolConfig = null, wolStatus = null }: Props = $props()
 
   let overviewServices = $derived(
     overviewServiceNames.length
@@ -32,7 +33,7 @@
 
 <Header title="Overview" {wolConfig} {wolStatus} />
 
-<StatusLine {hosts} {hostData} services={services.flatMap(g => g.items)} {serviceStatus} />
+<StatusLine {hosts} {hostData} services={services.flatMap(g => g.items)} {serviceStatus} {upstreamProblems} />
 
 <div class="grid">
   {#each hosts as host (host.key)}

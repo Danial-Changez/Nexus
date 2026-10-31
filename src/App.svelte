@@ -143,6 +143,27 @@
     } catch { /* keep last known; StatusLine shows its age */ }
   }
 
+  // ── Upstream health (Pi-hole, media stack) for the Overview status sentence ──
+  const MEDIA_NAMES: Record<string, string> = { qbit: 'qBittorrent', nzbget: 'NZBGet', sonarr: 'Sonarr', radarr: 'Radarr', prowlarr: 'Prowlarr' }
+  let upstreamProblems = $state<string[]>([])
+
+  async function refreshUpstreams() {
+    const problems: string[] = []
+    try {
+      if (!(await fetch('/api/pihole/stats')).ok) problems.push('Pi-hole')
+    } catch { problems.push('Pi-hole') }
+    try {
+      const res = await fetch('/api/media/stats')
+      if (!res.ok) throw new Error()
+      const stats: Record<string, { error?: string }> = await res.json()
+      for (const [key, s] of Object.entries(stats)) {
+        // Unconfigured services aren't problems, just absent
+        if (s?.error && !/not configured/i.test(s.error)) problems.push(MEDIA_NAMES[key] ?? key)
+      }
+    } catch { problems.push('Media stack') }
+    upstreamProblems = problems
+  }
+
   // ── WoL Status ──
   let wolStatus = $state<WolStatus | null>(null)
 
@@ -181,6 +202,7 @@
         poll(refreshHosts, 10000),
         poll(refreshServices, 30000),
         poll(refreshWolStatus, 10000),
+        poll(refreshUpstreams, 60000),
       ]
     })
     return () => {
@@ -197,7 +219,7 @@
 
   <main class="main-content" class:sidebar-collapsed={collapsed}>
     {#if activePage === 'overview'}
-      <Overview {hosts} {services} {overviewServiceNames} {hostData} {serviceStatus} {wolConfig} {wolStatus} />
+      <Overview {hosts} {services} {overviewServiceNames} {hostData} {serviceStatus} {upstreamProblems} {wolConfig} {wolStatus} />
     {:else if activePage === 'metrics'}
       <Metrics {hosts} {hostData} />
     {:else if activePage === 'services'}
@@ -212,7 +234,7 @@
   </main>
 </div>
 
-<Palette bind:open={paletteOpen} {services} {serviceStatus} />
+<Palette bind:open={paletteOpen} {hosts} {services} {serviceStatus} {wolConfig} {wolStatus} />
 
 <style>
   .app-layout {

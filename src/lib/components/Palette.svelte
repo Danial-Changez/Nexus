@@ -1,18 +1,53 @@
 <script lang="ts">
-  import type { ServiceGroup, ServiceStatus } from '../types.js'
+  import type { Host, ServiceGroup, ServiceStatus, WolConfig, WolStatus } from '../types.js'
   import { PAGES } from '../pages.js'
+  import { power } from '../utils/power.svelte.js'
   import Icon from './Icon.svelte'
   import StatusIcon from './StatusIcon.svelte'
 
   interface Props {
     open: boolean
+    hosts: Host[]
     services: ServiceGroup[]
     serviceStatus: Map<string, ServiceStatus>
+    wolConfig: WolConfig | null
+    wolStatus: WolStatus | null
   }
 
-  let { open = $bindable(false), services, serviceStatus }: Props = $props()
+  let { open = $bindable(false), hosts, services, serviceStatus, wolConfig, wolStatus }: Props = $props()
 
-  interface Item { group: string; label: string; detail: string; href: string; external: boolean; icon?: string; img?: string }
+  interface Item { group: string; label: string; detail: string; href: string; external: boolean; icon?: string; img?: string; action?: () => void }
+
+  // Container names are fetched each time the palette opens, not polled
+  let containers = $state<{ name: string; host: string; running: boolean }[]>([])
+
+  async function loadContainers() {
+    const lists = await Promise.all(hosts.map(async h => {
+      try {
+        const res = await fetch(`/api/glances/${h.key}/api/4/containers`)
+        const data = res.ok ? await res.json() : []
+        return (Array.isArray(data) ? data : []).map((c: any) => ({
+          name: c.name || 'unknown',
+          host: h.name,
+          running: /^(running|healthy|up)/i.test(c.status || ''),
+        }))
+      } catch {
+        return []
+      }
+    }))
+    containers = lists.flat().sort((a, b) => a.name.localeCompare(b.name))
+  }
+
+  function requestPower(req: 'wake' | 'shutdown') {
+    power.request = req
+    location.hash = 'overview'
+  }
+
+  let powerItems = $derived<Item[]>(!wolConfig ? [] : [
+    wolStatus?.online
+      ? { group: 'Actions', label: `Shut down ${wolConfig.name || wolConfig.hostname}…`, detail: 'Asks for confirmation on the Overview', href: 'action:shutdown', external: false, icon: 'power', action: () => requestPower('shutdown') }
+      : { group: 'Actions', label: `Wake ${wolConfig.name || wolConfig.hostname}`, detail: 'Sends a Wake-on-LAN packet', href: 'action:wake', external: false, icon: 'power', action: () => requestPower('wake') },
+  ])
 
   let dialogEl = $state<HTMLDialogElement | null>(null)
   let query = $state('')
@@ -20,7 +55,9 @@
 
   let items = $derived<Item[]>([
     ...PAGES.map(p => ({ group: 'Pages', label: p.label, detail: '', href: `#${p.id}`, external: false, icon: p.icon })),
+    ...powerItems,
     ...services.flatMap(g => g.items.map(s => ({ group: 'Services', label: s.name, detail: s.desc, href: s.href, external: true, img: s.icon }))),
+    ...containers.map(c => ({ group: 'Containers', label: c.name, detail: `${c.host}${c.running ? '' : ' · stopped'}`, href: `#containers?q=${encodeURIComponent(c.name)}`, external: false, icon: 'container' })),
   ])
 
   let results = $derived.by(() => {
@@ -37,6 +74,7 @@
       query = ''
       selected = 0
       dialogEl.showModal()
+      loadContainers()
     } else if (!open && dialogEl.open) {
       dialogEl.close()
     }
@@ -50,7 +88,8 @@
   function go(item: Item | undefined) {
     if (!item) return
     open = false
-    if (item.external) window.open(item.href, '_blank', 'noopener')
+    if (item.action) item.action()
+    else if (item.external) window.open(item.href, '_blank', 'noopener')
     else location.hash = item.href
   }
 
@@ -72,7 +111,7 @@
   bind:this={dialogEl}
   onclose={() => open = false}
   onclick={e => { if (e.target === dialogEl) open = false }}
-  aria-label="Search pages and services"
+  aria-label="Search pages, services and containers"
 >
   <div class="search-row">
     <Icon name="magnifier" size="16px" />
@@ -80,7 +119,7 @@
       type="text"
       bind:value={query}
       onkeydown={onKeydown}
-      placeholder="Search pages and services…"
+      placeholder="Search pages, services, containers…"
       aria-label="Search"
       aria-controls="palette-results"
       aria-activedescendant={results.length ? `palette-opt-${selected}` : undefined}
@@ -90,7 +129,7 @@
     <kbd>esc</kbd>
   </div>
   <ul id="palette-results" role="listbox">
-    {#each results as item, i (item.href)}
+    {#each results as item, i (item.group + item.href)}
       {#if i === 0 || results[i - 1].group !== item.group}
         <li class="group" role="presentation">{item.group}</li>
       {/if}
@@ -118,7 +157,7 @@
         {/if}
       </li>
     {:else}
-      <li class="empty">No pages or services match "{query}"</li>
+      <li class="empty">Nothing matches "{query}"</li>
     {/each}
   </ul>
 </dialog>

@@ -2,14 +2,19 @@
 :root {
   color-scheme: dark;
 
-  --background: oklch(0.141 0.005 285.823);
+  /* Theme inputs: every neutral below derives from these two plus the accent */
+  --hue: 286;
+  --tint: 0.006;
+  --accent-hue: 293;
+
+  --background: oklch(0.141 var(--tint) var(--hue));
   --foreground: oklch(0.985 0 0);
-  --primary: oklch(0.6 0.2 293);
-  --secondary: oklch(0.274 0.006 286.033 / 0.55);
-  --muted: oklch(0.274 0.006 286.033 / 0.55);
-  --muted-foreground: oklch(0.705 0.015 286.067);
+  --primary: oklch(0.6 0.2 var(--accent-hue));
+  --secondary: oklch(0.274 var(--tint) var(--hue) / 0.55);
+  --muted: oklch(0.274 var(--tint) var(--hue) / 0.55);
+  --muted-foreground: oklch(0.705 calc(var(--tint) * 2.5) var(--hue));
   --border: oklch(1 0 0 / 10%);
-  --bg-surface: oklch(0.21 0.006 285.885);
+  --bg-surface: oklch(0.21 var(--tint) var(--hue));
   --radius: 0.65rem;
 
   /* Status: health only, never data series */
@@ -35,10 +40,10 @@
   --sidebar-width: 240px;
   --sidebar-collapsed-width: 64px;
   --tabbar-height: 56px;
-  --sidebar-bg: oklch(0.16 0.005 285.823);
+  --sidebar-bg: oklch(0.16 var(--tint) var(--hue));
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-item-hover: oklch(1 0 0 / 10%);
-  --sidebar-item-active: oklch(0.6 0.2 293 / 0.14);
+  --sidebar-item-active: oklch(0.6 0.2 var(--accent-hue) / 0.14);
   --sidebar-item-active-border: var(--primary);
 }
 
@@ -57,6 +62,11 @@ body {
 :focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* Touch screens: 44px minimum targets (HIG Accessibility) */
+@media (pointer: coarse) {
+  button, .nav-item, [role="option"], .sort-btn { min-height: 44px; }
 }
 
 /* ── Scrollbar (Nexus style) ────────────────────────────────────── */

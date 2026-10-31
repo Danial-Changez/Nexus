@@ -127,6 +127,8 @@
   </div>
 </div>
 
+<svelte:window onhashchange={() => search = getParam('q') ?? ''} />
+
 {#snippet sortHeader(col: { key: string; label: string }, cls: string)}
   <th class={cls} aria-sort={sortBy === col.key ? (col.key === 'name' ? 'ascending' : 'descending') : 'none'}>
     <button class="sort-btn" class:active={sortBy === col.key} onclick={() => sortBy = col.key}>

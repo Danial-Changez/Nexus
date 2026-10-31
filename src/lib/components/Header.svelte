@@ -1,7 +1,9 @@
 <script lang="ts">
+  import { untrack } from 'svelte'
   import type { WolConfig, WolStatus } from '../types.js'
   import Icon from './Icon.svelte'
   import PageHeader from './PageHeader.svelte'
+  import { power } from '../utils/power.svelte.js'
 
   interface Props {
     title: string
@@ -34,6 +36,17 @@
       wakingSince = null
       feedback = `${name} is on`
     }
+  })
+
+  // Requests from the command palette
+  $effect(() => {
+    const req = power.request
+    if (!req || !wolConfig) return
+    power.request = null
+    untrack(() => {
+      if (req === 'wake' && !pcOnline) sendAction('wake')
+      else if (req === 'shutdown' && pcOnline && confirmLeft === 0) onShutdown()
+    })
   })
 
   function askToken(): Promise<string | null> {
