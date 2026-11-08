@@ -37,7 +37,7 @@
       const list: any[] = Array.isArray(data) ? data : []
       return list.map(c => ({
         name: c.name || 'unknown',
-        image: c.image || '',
+        image: String([c.image ?? ''].flat()[0] ?? '').split(',')[0],  // Glances 4 sends ["repo:tag,repo@sha"]
         status: c.status || '',
         cpu: c.cpu_percent ?? c.cpu?.total ?? null,
         mem: c.memory_usage ?? c.memory?.usage ?? null,
@@ -180,7 +180,7 @@
                 <td class="col-status"><StatusIcon status={running ? 'up' : 'idle'} /></td>
                 <td class="col-name">
                   <span class="c-name">{c.name}</span>
-                  <span class="c-image" translate="no">{c.image.split(',')[0]}</span>
+                  <span class="c-image" translate="no">{c.image}</span>
                 </td>
                 <td class="col-num">{c.cpu != null ? `${c.cpu.toFixed(1)}%` : '–'}</td>
                 <td class="col-num">
