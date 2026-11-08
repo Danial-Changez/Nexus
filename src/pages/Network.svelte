@@ -294,7 +294,7 @@
 
   .page-stat-value {
     font-size: var(--text-lg);
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
   }
 
   .page-stat-value.rx { color: var(--foreground); }
@@ -354,7 +354,7 @@
   .iface-name {
     font-size: var(--text-md);
     font-weight: 600;
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
   }
 
   .iface-badge {
@@ -407,7 +407,7 @@
   .rate-value {
     font-size: var(--text-md);
     font-weight: 700;
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     color: var(--foreground);
   }
@@ -415,7 +415,7 @@
   .rate-total {
     margin-left: auto;
     font-size: var(--text-xs);
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     color: var(--muted-foreground);
     opacity: 0.7;
   }

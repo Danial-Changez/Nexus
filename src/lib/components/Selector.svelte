@@ -16,38 +16,33 @@
 </div>
 
 <style>
+  /* Arcane segment toggle */
   .selector {
     display: flex;
     gap: 2px;
-    background: var(--secondary);
-    border: 1px solid var(--border);
+    background: var(--muted);
     border-radius: var(--radius);
-    padding: 3px;
+    padding: 2px;
   }
 
   .btn {
-    padding: 4px 12px;
+    padding: 4px 10px;
     min-height: 28px;
     font-size: var(--text-xs);
-    font-weight: 600;
+    font-weight: 500;
     font-family: inherit;
     color: var(--muted-foreground);
     background: transparent;
     border: none;
-    border-radius: calc(var(--radius) - 3px);
+    border-radius: var(--radius);
     cursor: pointer;
     transition: color 150ms ease, background-color 150ms ease;
-
   }
 
-  .btn:hover {
-    color: var(--foreground);
-    background: var(--muted);
-  }
+  .btn:hover { color: var(--primary-text); }
 
   .btn.active {
-    color: var(--foreground);
-    background: var(--bg-surface);
-    box-shadow: 0 1px 3px oklch(0 0 0 / 0.3);
+    color: var(--primary-text);
+    background: color-mix(in oklch, var(--primary) 15%, transparent);
   }
 </style>

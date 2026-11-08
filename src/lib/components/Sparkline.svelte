@@ -6,8 +6,8 @@
 
   // Canvas can't read CSS vars; keep in sync with --series-1 / --series-2 in app.css
   const COLORS = {
-    series1: { stroke: 'oklch(0.72 0.13 240)', fill: 'oklch(0.72 0.13 240 / 0.15)' },
-    series2: { stroke: 'oklch(0.66 0.17 293)', fill: 'oklch(0.66 0.17 293 / 0.12)' },
+    series1: { stroke: 'oklch(0.707 0.165 254.624)', fill: 'oklch(0.707 0.165 254.624 / 0.15)' },
+    series2: { stroke: 'oklch(0.702 0.183 293.541)', fill: 'oklch(0.702 0.183 293.541 / 0.12)' },
   }
 
   interface Series { points: number[]; color: keyof typeof COLORS }
@@ -180,7 +180,7 @@
     border: 1px solid var(--border);
     border-radius: calc(var(--radius) - 2px);
     padding: 0.45rem 0.6rem;
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
     font-variant-numeric: tabular-nums;
     color: var(--foreground);

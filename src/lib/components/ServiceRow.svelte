@@ -54,8 +54,8 @@
     transition: background-color 150ms ease;
   }
 
-  .svc-row + :global(.svc-row) { border-top: 1px solid var(--border); }
-  .svc-row:hover { background: oklch(1 0 0 / 4%); }
+  .svc-row + :global(.svc-row) { border-top: 1px solid oklch(1 0 0 / 4%); }
+  .svc-row:hover { background: color-mix(in oklab, var(--primary) 8%, transparent); }
   .svc-row.down { background: color-mix(in oklch, var(--crit) 7%, transparent); }
 
   .svc-icon { width: 20px; height: 20px; flex-shrink: 0; }

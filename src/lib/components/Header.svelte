@@ -197,18 +197,19 @@
     font-size: var(--text-xs);
     padding: 1px 8px;
     border-radius: 9999px;
-    font-weight: 600;
-    background: var(--muted);
+    border: 1px solid color-mix(in oklch, currentColor 25%, transparent);
+    font-weight: 500;
+    background: color-mix(in oklch, var(--muted-foreground) 10%, transparent);
     color: var(--muted-foreground);
   }
 
   .wol-badge.online {
-    background: color-mix(in oklch, var(--ok) 14%, transparent);
+    background: color-mix(in oklch, var(--ok) 10%, transparent);
     color: var(--ok);
   }
 
   .wol-badge.waking {
-    background: color-mix(in oklch, var(--warn) 14%, transparent);
+    background: color-mix(in oklch, var(--warn) 10%, transparent);
     color: var(--warn);
   }
 
@@ -217,27 +218,41 @@
     align-items: center;
     gap: 0.4rem;
     min-height: 2.25rem;
-    padding: 0 0.85rem;
+    padding: 0 1rem;
     font: inherit;
     font-size: var(--text-sm);
-    font-weight: 600;
+    font-weight: 500;
     color: var(--foreground);
-    background: var(--muted);
-    border: 1px solid var(--border);
+    background: color-mix(in oklch, var(--card) 70%, transparent);
+    border: 1px solid color-mix(in oklch, var(--border) 80%, transparent);
     border-radius: var(--radius);
+    box-shadow: var(--button-shadow);
     cursor: pointer;
-    transition: background-color 150ms ease, border-color 150ms ease;
+    transition: background-color 200ms ease-out, border-color 200ms ease-out, transform 110ms ease;
   }
 
   .wol-btn:hover:not(:disabled) {
-    background: var(--sidebar-item-hover);
-    border-color: oklch(1 0 0 / 18%);
+    background: color-mix(in oklch, var(--muted) 40%, transparent);
+    border-color: var(--border);
   }
 
-  .wol-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .wol-btn:active:not(:disabled) { transform: scale(0.98); }
+  .wol-btn:disabled { opacity: 0.55; cursor: not-allowed; }
   .wol-btn.danger { color: var(--crit); }
-  .wol-btn.danger.armed { background: var(--crit); color: oklch(0.15 0.01 22); border-color: transparent; }
-  .wol-btn.primary { background: var(--primary); border-color: transparent; }
+  .wol-btn.danger.armed,
+  .wol-btn.danger.armed:hover:not(:disabled) {
+    color: white;
+    background: color-mix(in oklch, var(--crit) 80%, transparent);
+    border-color: color-mix(in oklch, var(--crit) 70%, transparent);
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.14), 0 10px 24px -14px oklch(0 0 0 / 0.5);
+  }
+  .wol-btn.primary,
+  .wol-btn.primary:hover:not(:disabled) {
+    color: var(--primary-foreground);
+    background: var(--primary);
+    border-color: color-mix(in oklch, var(--primary) 70%, transparent);
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.16), 0 10px 24px -14px oklch(0 0 0 / 0.5);
+  }
 
   .wol-feedback {
     max-width: 28rem;
@@ -266,18 +281,18 @@
     margin: auto;
     width: min(24rem, calc(100vw - 2rem));
     padding: 1.25rem;
-    background: var(--bg-surface);
+    background: var(--card);
     color: var(--foreground);
-    border: 1px solid var(--border);
-    border-radius: 0.85rem;
-    box-shadow: 0 24px 60px oklch(0 0 0 / 0.55);
+    border: none;
+    border-radius: var(--radius);
+    box-shadow: var(--float-shadow);
   }
 
   .token-dialog::backdrop { background: oklch(0 0 0 / 0.5); }
   .token-dialog form { display: flex; flex-direction: column; gap: 0.6rem; }
   .token-dialog h2 { font-size: var(--text-md); font-weight: 600; }
   .token-dialog p { font-size: var(--text-sm); color: var(--muted-foreground); }
-  .token-dialog code { font-family: 'Geist Mono', monospace; font-size: var(--text-xs); }
+  .token-dialog code { font-family: var(--font-mono); font-size: var(--text-xs); }
   .token-dialog label { font-size: var(--text-xs); color: var(--muted-foreground); margin-top: 0.25rem; }
 
   .token-dialog input {
@@ -286,12 +301,12 @@
     font: inherit;
     font-size: var(--text-sm);
     color: var(--foreground);
-    background: var(--background);
-    border: 1px solid var(--border);
+    background: color-mix(in oklch, var(--input) 80%, transparent);
+    border: none;
     border-radius: var(--radius);
   }
 
-  .token-dialog input:focus-visible { border-color: var(--primary); outline: none; }
+  .token-dialog input:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--ring); }
   .dialog-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
 
   @media (max-width: 480px) {

@@ -208,19 +208,19 @@
   .search-input {
     width: 100%; min-height: 2.25rem; padding: 0 10px 0 32px; font: inherit; font-size: var(--text-sm);
     color: var(--foreground);
-    background: var(--secondary); border: 1px solid var(--border);
-    border-radius: var(--radius); outline: none; transition: border-color 150ms ease;
+    background: color-mix(in oklch, var(--input) 80%, transparent); border: none;
+    border-radius: var(--radius); outline: none; transition: box-shadow 150ms ease;
   }
   .search-input::placeholder { color: var(--muted-foreground); }
-  .search-input:focus-visible { border-color: var(--primary); }
+  .search-input:focus-visible { box-shadow: 0 0 0 2px var(--ring); }
 
   .table-wrap { overflow-x: auto; }
 
   table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
 
   th, td { padding: 0.5rem 0.9rem; text-align: left; }
-  thead th { font-size: var(--text-xs); font-weight: 600; color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
-  tbody tr + tr td { border-top: 1px solid oklch(1 0 0 / 5%); }
+  thead th { height: 2.5rem; font-size: var(--text-xs); font-weight: 500; color: var(--muted-foreground); background: var(--table-head); }
+  tbody tr + tr td { border-top: 1px solid oklch(1 0 0 / 4%); }
 
   .col-status { width: 2rem; padding-right: 0; }
   .col-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; width: 1%; }
@@ -260,9 +260,12 @@
   .empty-hint { font-size: var(--text-sm); display: block; margin-top: 0.5rem; }
 
   .clear-btn {
-    margin-top: 0.75rem; min-height: 2.25rem; padding: 0 0.85rem; font: inherit; font-size: var(--text-sm);
-    color: var(--foreground); background: var(--muted); border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer;
+    margin-top: 0.75rem; min-height: 2.25rem; padding: 0 1rem; font: inherit; font-size: var(--text-sm); font-weight: 500;
+    color: var(--foreground); background: color-mix(in oklch, var(--card) 70%, transparent);
+    border: 1px solid color-mix(in oklch, var(--border) 80%, transparent); border-radius: var(--radius);
+    box-shadow: var(--button-shadow); cursor: pointer;
   }
+  .clear-btn:hover { background: color-mix(in oklch, var(--muted) 40%, transparent); border-color: var(--border); }
 
   @media (max-width: 640px) {
     .search-wrap { max-width: none; }

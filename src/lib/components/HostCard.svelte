@@ -186,8 +186,8 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    background: var(--secondary);
-    border: 1px solid var(--border);
+    background: var(--accent);
+    box-shadow: inset 0 0 0 1px oklch(1 0 0 / 5%);
     color: var(--foreground);
   }
 
@@ -218,22 +218,23 @@
     font-size: var(--text-xs);
     padding: 2px 10px;
     border-radius: 9999px;
+    border: 1px solid color-mix(in oklch, currentColor 25%, transparent);
     font-weight: 500;
     white-space: nowrap;
   }
 
   .card-badge.online {
-    background: color-mix(in oklch, var(--ok) 12%, transparent);
+    background: color-mix(in oklch, var(--ok) 10%, transparent);
     color: var(--ok);
   }
 
   .card-badge.offline {
-    background: color-mix(in oklch, var(--crit) 12%, transparent);
+    background: color-mix(in oklch, var(--crit) 10%, transparent);
     color: var(--crit);
   }
 
   .card-badge.loading {
-    background: var(--muted);
+    background: color-mix(in oklch, var(--muted-foreground) 10%, transparent);
     color: var(--muted-foreground);
   }
 

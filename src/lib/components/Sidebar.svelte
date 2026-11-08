@@ -47,6 +47,7 @@
         <kbd>⌘K</kbd>
       {/if}
     </button>
+    {#if !collapsed}<span class="nav-group">Dashboard</span>{/if}
     {#each PAGES as item, i (item.id)}
       <a
         href="#{item.id}"
@@ -97,38 +98,40 @@
 </nav>
 
 <style>
+  /* Floating panel inset 0.5rem from the viewport (Arcane floating sidebar) */
   .sidebar {
     position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: var(--sidebar-width);
+    top: 0.5rem;
+    left: 0.5rem;
+    bottom: 0.5rem;
+    width: calc(var(--sidebar-width) - 1rem);
     background: var(--sidebar-bg);
-    border-right: 1px solid var(--sidebar-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shell-ring);
     display: flex;
     flex-direction: column;
     z-index: 100;
-    transition: width 200ms ease;
+    transition: width 200ms ease-out;
     overflow: hidden;
   }
 
   .sidebar.collapsed {
-    width: var(--sidebar-collapsed-width);
+    width: calc(var(--sidebar-collapsed-width) - 1rem);
   }
 
   .sidebar-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    border-bottom: 1px solid var(--sidebar-border);
-    min-height: 60px;
+    gap: 0.6rem;
+    padding: 1rem 0.75rem 0.5rem 1.1rem;
+    min-height: 3.75rem;
   }
 
+  .sidebar.collapsed .sidebar-header { padding: 1rem 0 0.5rem; }
+
   .sidebar-logo {
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius);
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
     object-fit: contain;
   }
@@ -150,14 +153,9 @@
     opacity: 0.8;
   }
 
-  .logo-btn .sidebar-logo {
-    width: 28px;
-    height: 28px;
-  }
-
   .sidebar-title {
     flex: 1;
-    font-size: var(--text-md);
+    font-size: 1.125rem;
     font-weight: 700;
     color: var(--foreground);
     letter-spacing: -0.02em;
@@ -165,10 +163,11 @@
 
   .sidebar-toggle {
     background: none;
-    border: 1px solid var(--border);
-    border-radius: calc(var(--radius) - 2px);
+    border: none;
+    border-radius: var(--radius);
     cursor: pointer;
-    padding: 4px;
+    width: 2.25rem;
+    height: 2.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -188,26 +187,39 @@
   .sidebar-nav {
     flex: 1;
     overflow-y: auto;
-    padding: 0.5rem;
+    padding: 0.25rem 0.75rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 2px;
   }
 
-  .search-item { margin-bottom: 0.5rem; }
+  .sidebar.collapsed .sidebar-nav { padding-inline: 0; align-items: center; }
+
+  .search-item { margin-bottom: 0.5rem; color: var(--muted-foreground); }
+
+  .nav-group {
+    display: flex;
+    align-items: flex-end;
+    height: 2.25rem;
+    padding: 0 0.65rem 0.5rem;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--muted-foreground);
+  }
 
   .nav-item {
     display: flex;
     align-items: center;
-    gap: 0.65rem;
+    gap: 0.7rem;
     width: 100%;
-    padding: 0.5rem 0.6rem;
+    height: 2.25rem;
+    padding: 0 0.75rem 0 0.65rem;
     border: none;
     border-radius: var(--radius);
     background: none;
-    color: var(--muted-foreground);
+    color: var(--foreground);
     cursor: pointer;
-    font-size: var(--text-sm);
+    font-size: 0.875rem;
     font-family: inherit;
     font-weight: 500;
     text-decoration: none;
@@ -218,7 +230,8 @@
 
   .sidebar.collapsed .nav-item {
     justify-content: center;
-    padding: 0.5rem;
+    width: 2.25rem;
+    padding: 0;
   }
 
   .nav-item:hover {
@@ -229,17 +242,7 @@
   .nav-item.active {
     background: var(--sidebar-item-active);
     color: var(--foreground);
-  }
-
-  .nav-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 25%;
-    bottom: 25%;
-    width: 3px;
-    border-radius: 0 2px 2px 0;
-    background: var(--sidebar-item-active-border);
+    font-weight: 600;
   }
 
   .nav-icon {
@@ -255,17 +258,15 @@
   }
 
   kbd {
-    font: 500 var(--text-xs) 'Geist Mono', monospace;
+    font: 500 var(--text-xs) var(--font-mono);
     color: var(--muted-foreground);
     opacity: 0.6;
   }
 
   .sidebar-footer {
-    border-top: 1px solid var(--sidebar-border);
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem 0.85rem 1.1rem;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: baseline;
     gap: 0.5rem;
   }
 
@@ -278,7 +279,8 @@
   }
 
   .sidebar.collapsed .sidebar-footer {
-    padding: 0.75rem 0.25rem;
+    padding: 0.5rem 0 0.85rem;
+    justify-content: center;
   }
 
   .footer-date {
@@ -292,18 +294,26 @@
   @media (max-width: 480px) {
     .sidebar { display: none; }
 
+    /* Floating frosted pill (Arcane mobile nav) */
     .tabbar {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
+      gap: 0.25rem;
       position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      left: 50%;
+      bottom: var(--tabbar-inset);
+      translate: -50% 0;
+      width: calc(100% - 1rem);
+      max-width: 28rem;
       z-index: 100;
       min-height: var(--tabbar-height);
-      padding: 0.35rem env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-      background: var(--sidebar-bg);
-      border-top: 1px solid var(--sidebar-border);
+      padding: 0.3rem 0.4rem;
+      background: color-mix(in oklch, var(--background) 60%, transparent);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid oklch(1 0 0 / 6%);
+      border-radius: calc(var(--radius) + 0.4rem);
+      box-shadow: 0 1px 2px oklch(0 0 0 / 0.3);
     }
 
     .tab {
@@ -320,21 +330,26 @@
       text-decoration: none;
       background: none;
       border: none;
+      border-radius: var(--radius);
       cursor: pointer;
+      transition: background-color 150ms ease, color 150ms ease;
     }
 
-    .tab.active { color: var(--primary); }
+    .tab.active {
+      color: var(--primary-text);
+      background: color-mix(in oklch, var(--primary) 15%, transparent);
+    }
 
     .tab-more {
-      inset: auto 0.75rem calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 0.5rem) auto;
+      inset: auto 0.75rem calc(var(--tabbar-height) + var(--tabbar-inset) + 0.5rem) auto;
       margin: 0;
       min-width: 12rem;
       padding: 0.35rem;
-      background: var(--bg-surface);
+      background: var(--card);
       color: var(--foreground);
-      border: 1px solid var(--border);
+      border: none;
       border-radius: var(--radius);
-      box-shadow: 0 12px 32px oklch(0 0 0 / 0.5);
+      box-shadow: var(--float-shadow);
     }
 
     .more-item {

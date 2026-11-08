@@ -196,7 +196,7 @@
 
   .vdl-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 0.75rem; }
   .vdl-stat { text-align: center; padding: 0.5rem 0.25rem; border-radius: calc(var(--radius) - 2px); border: 1px solid var(--border); }
-  .vdl-value { font-size: var(--text-md); font-weight: 700; font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums; display: block; }
+  .vdl-value { font-size: var(--text-md); font-weight: 700; font-family: var(--font-mono); font-variant-numeric: tabular-nums; display: block; }
   .vdl-label { font-size: var(--text-xs); color: var(--muted-foreground); }
 
   .item-list { display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 0.75rem; margin-bottom: 0.75rem; }
@@ -205,15 +205,15 @@
   .item-info { min-width: 0; flex: 1; }
   .item-name { font-size: var(--text-xs); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
   .item-meta { display: flex; align-items: center; gap: 0.35rem; margin-top: 0.15rem; flex-wrap: wrap; }
-  .item-badge { font-size: var(--text-xs); padding: 1px 5px; border-radius: 4px; font-weight: 600; }
-  .item-badge.downloading { background: color-mix(in oklch, var(--series-1) 15%, transparent); color: var(--series-1); }
-  .item-badge.stalled { background: var(--muted); color: var(--muted-foreground); }
-  .item-badge.waiting { background: color-mix(in oklch, var(--series-3) 15%, transparent); color: var(--series-3); }
-  .item-detail { font-size: var(--text-xs); font-family: 'Geist Mono', monospace; color: var(--muted-foreground); }
+  .item-badge { font-size: var(--text-xs); padding: 0 6px; border-radius: 9999px; border: 1px solid color-mix(in oklch, currentColor 25%, transparent); font-weight: 500; }
+  .item-badge.downloading { background: color-mix(in oklch, var(--series-1) 10%, transparent); color: var(--series-1); }
+  .item-badge.stalled { background: color-mix(in oklch, var(--muted-foreground) 10%, transparent); color: var(--muted-foreground); }
+  .item-badge.waiting { background: color-mix(in oklch, var(--series-3) 10%, transparent); color: var(--series-3); }
+  .item-detail { font-size: var(--text-xs); font-family: var(--font-mono); color: var(--muted-foreground); }
   .item-detail.dl { color: var(--series-1); }
 
   .dl-row { flex-wrap: wrap; }
-  .dl-pct { font-size: var(--text-xs); font-family: 'Geist Mono', monospace; font-variant-numeric: tabular-nums; color: var(--series-1); flex-shrink: 0; }
+  .dl-pct { font-size: var(--text-xs); font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--series-1); flex-shrink: 0; }
   .dl-progress-track { width: 100%; height: 3px; background: color-mix(in oklch, var(--series-1) 15%, transparent); border-radius: 2px; overflow: hidden; }
   .dl-progress-bar { height: 100%; background: var(--series-1); border-radius: 2px; transition: width 0.5s ease; }
   .dl-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--series-1); flex-shrink: 0; animation: pulse 1.5s ease-in-out infinite; }

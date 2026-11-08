@@ -64,7 +64,7 @@
   .net-stat-value {
     font-size: var(--text-sm);
     font-weight: 600;
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     color: var(--foreground);
   }

@@ -1,32 +1,47 @@
-/* ── Nexus Design Tokens (Dark Mode, OKLCH) ──────────────────────── */
+/* ── Nexus Design Tokens (Dark Mode, OKLCH, Arcane palette) ─────────── */
 :root {
   color-scheme: dark;
 
-  /* Theme inputs: every neutral below derives from these two plus the accent */
+  /* Theme inputs: every neutral below derives from these two plus the accent.
+     --tint 0 matches Arcane's pure-neutral dark theme. */
   --hue: 286;
-  --tint: 0.006;
+  --tint: 0;
   --accent-hue: 293;
 
-  --background: oklch(0.141 var(--tint) var(--hue));
+  --background: oklch(0.145 var(--tint) var(--hue));
   --foreground: oklch(0.985 0 0);
-  --primary: oklch(0.6 0.2 var(--accent-hue));
-  --secondary: oklch(0.274 var(--tint) var(--hue) / 0.55);
-  --muted: oklch(0.274 var(--tint) var(--hue) / 0.55);
-  --muted-foreground: oklch(0.705 calc(var(--tint) * 2.5) var(--hue));
+  --card: oklch(0.205 var(--tint) var(--hue));
+  --primary: oklch(0.541 0.281 var(--accent-hue));
+  --primary-foreground: oklch(0.969 0.016 var(--accent-hue));
+  --primary-text: oklch(0.811 0.101 var(--accent-hue));
+  --secondary: oklch(0.274 0.006 var(--hue));
+  --muted: oklch(0.269 var(--tint) var(--hue));
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(1 0 0 / 9%);
   --border: oklch(1 0 0 / 10%);
-  --bg-surface: oklch(0.21 var(--tint) var(--hue));
-  --radius: 0.65rem;
+  --card-border: oklch(1 0 0 / 7%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.811 0.101 var(--accent-hue));
+  --bg-surface: var(--card);
+  --radius: 1.15rem;
+
+  /* Shell: floating sidebar + content panels */
+  --shell-ring: 0 0 0 1px oklch(1 0 0 / 8%);
+  --shell-shadow: inset 0 1px 0 oklch(1 0 0 / 0.1), var(--shell-ring), 0 2px 16px -4px oklch(0 0 0 / 0.5);
+  --float-shadow: 0 0 0 1px oklch(1 0 0 / 8%), 0 24px 80px -32px oklch(0 0 0 / 0.55);
+  --button-shadow: inset 0 1px 0 oklch(1 0 0 / 0.06), 0 1px 2px oklch(0 0 0 / 0.16);
+  --table-head: color-mix(in oklab, var(--foreground) 5%, var(--background));
 
   /* Status: health only, never data series */
-  --ok: oklch(0.74 0.15 162);
-  --warn: oklch(0.8 0.15 75);
+  --ok: oklch(0.765 0.177 163.223);
+  --warn: oklch(0.828 0.189 84.429);
   --crit: oklch(0.704 0.191 22.216);
   --idle: var(--muted-foreground);
   --destructive: var(--crit);
 
   /* Data series: never health. Canvas charts mirror these in Sparkline.svelte */
-  --series-1: oklch(0.72 0.13 240);
-  --series-2: oklch(0.66 0.17 293);
+  --series-1: oklch(0.707 0.165 254.624);
+  --series-2: oklch(0.702 0.183 293.541);
   --series-3: oklch(0.78 0.12 85);
 
   /* Type scale: override --text-* on :root to scale the whole UI (e.g. wall display) */
@@ -35,32 +50,35 @@
   --text-md: 0.9375rem;
   --text-lg: 1.125rem;
   --text-xl: 1.5rem;
+  --font-sans: 'Mona Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  /* Sidebar */
-  --sidebar-width: 240px;
-  --sidebar-collapsed-width: 64px;
+  /* Sidebar: widths include the 0.5rem gutter around the floating panel */
+  --sidebar-width: 270px;
+  --sidebar-collapsed-width: 76px;
   --tabbar-height: 56px;
-  --sidebar-bg: oklch(0.16 var(--tint) var(--hue));
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-item-hover: oklch(1 0 0 / 10%);
-  --sidebar-item-active: oklch(0.6 0.2 var(--accent-hue) / 0.14);
-  --sidebar-item-active-border: var(--primary);
+  --tabbar-inset: max(1rem, env(safe-area-inset-bottom, 0px));
+  --sidebar-bg: var(--background);
+  --sidebar-item-hover: var(--accent);
+  --sidebar-item-active: var(--accent);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  font-family: 'Geist', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--background);
   color: var(--foreground);
   min-height: 100vh;
   overflow-x: hidden;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   touch-action: manipulation;
 }
 
 :focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -69,7 +87,7 @@ body {
   button, .nav-item, [role="option"], .sort-btn { min-height: 44px; }
 }
 
-/* ── Scrollbar (Nexus style) ────────────────────────────────────── */
+/* ── Scrollbar (Arcane style) ───────────────────────────────────── */
 * { scrollbar-width: thin; scrollbar-color: transparent transparent; }
 *:hover { scrollbar-color: var(--muted-foreground) transparent; }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -85,10 +103,10 @@ body {
 
 /* ── Card: raised surface, reserved for hosts, interfaces, media panels ── */
 .card {
-  background: color-mix(in oklch, var(--bg-surface) 60%, var(--background));
-  border: 1px solid oklch(1 0 0 / 8%);
-  border-radius: 0.75rem;
-  transition: border-color 150ms ease;
+  background: color-mix(in oklch, var(--card) 10%, transparent);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -96,9 +114,9 @@ body {
 
 /* ── List surface: rows sharing one container (services, containers) ── */
 .list-surface {
-  background: color-mix(in oklch, var(--bg-surface) 60%, var(--background));
-  border: 1px solid oklch(1 0 0 / 8%);
-  border-radius: 0.75rem;
+  background: color-mix(in oklch, var(--card) 10%, transparent);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
   overflow: hidden;
 }
 

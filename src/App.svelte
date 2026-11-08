@@ -242,36 +242,44 @@
     min-height: 100vh;
   }
 
+  /* Floating content panel beside the floating sidebar (Arcane shell); the panel scrolls, not the window */
   .main-content {
     flex: 1;
-    margin-left: var(--sidebar-width);
-    padding: 1.5rem 2rem 1rem;
-    max-width: calc(100vw - var(--sidebar-width));
-    transition: margin-left 200ms ease, max-width 200ms ease;
+    min-width: 0;
+    height: calc(100dvh - 1rem);
+    margin: 0.5rem 0.5rem 0.5rem var(--sidebar-width);
+    padding: 1.25rem 1.5rem 1rem;
+    overflow-y: auto;
+    overflow-x: clip;
+    background: var(--background);
+    border-radius: var(--radius);
+    box-shadow: var(--shell-shadow);
+    transition: margin-left 200ms ease-out;
     position: relative;
     z-index: 1;
-    overflow: clip;
   }
 
   .main-content.sidebar-collapsed {
     margin-left: var(--sidebar-collapsed-width);
-    max-width: calc(100vw - var(--sidebar-collapsed-width));
   }
 
   @media (max-width: 768px) {
     .main-content {
       margin-left: var(--sidebar-collapsed-width);
-      max-width: calc(100vw - var(--sidebar-collapsed-width));
-      padding: 1.5rem 1rem;
+      padding: 1.25rem 1rem;
     }
   }
 
+  /* Phone: no panel, the page scrolls under the floating tab bar */
   @media (max-width: 480px) {
     .main-content,
     .main-content.sidebar-collapsed {
-      margin-left: 0;
-      max-width: 100vw;
-      padding: 1rem 1rem calc(var(--tabbar-height) + env(safe-area-inset-bottom, 0px) + 1rem);
+      height: auto;
+      margin: 0;
+      overflow: clip;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 1.25rem 0.75rem calc(var(--tabbar-height) + var(--tabbar-inset) + 1.5rem);
     }
   }
 </style>

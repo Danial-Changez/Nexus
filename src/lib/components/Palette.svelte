@@ -168,11 +168,11 @@
     width: min(32rem, calc(100vw - 2rem));
     max-height: 70vh;
     padding: 0;
-    background: var(--bg-surface);
+    background: var(--card);
     color: var(--foreground);
-    border: 1px solid var(--border);
-    border-radius: 0.85rem;
-    box-shadow: 0 24px 60px oklch(0 0 0 / 0.55);
+    border: none;
+    border-radius: var(--radius);
+    box-shadow: var(--float-shadow);
     overflow: hidden;
     overscroll-behavior: contain;
   }
@@ -204,7 +204,7 @@
   input::placeholder { color: var(--muted-foreground); }
 
   kbd {
-    font: 500 var(--text-xs) 'Geist Mono', monospace;
+    font: 500 var(--text-xs) var(--font-mono);
     color: var(--muted-foreground);
     border: 1px solid var(--border);
     border-radius: 4px;
@@ -227,13 +227,13 @@
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    padding: 0.5rem 0.65rem;
-    border-radius: calc(var(--radius) - 3px);
+    padding: 0.5rem 0.75rem;
+    border-radius: calc(var(--radius) - 0.35rem);
     font-size: var(--text-sm);
     cursor: pointer;
   }
 
-  .option.selected { background: var(--sidebar-item-active); }
+  .option.selected { background: var(--accent); }
 
   .opt-icon { display: flex; color: var(--muted-foreground); }
   .opt-label { font-weight: 500; white-space: nowrap; }

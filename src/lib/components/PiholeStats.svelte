@@ -211,7 +211,7 @@
   .stat-value {
     font-size: var(--text-lg);
     font-weight: 700;
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     color: var(--foreground);
   }
@@ -250,7 +250,7 @@
   .bar-value {
     font-size: var(--text-sm);
     font-weight: 600;
-    font-family: 'Geist Mono', monospace;
+    font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
 

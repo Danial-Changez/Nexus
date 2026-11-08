@@ -69,13 +69,13 @@
     gap: 0.85rem;
     padding: 0.9rem 1.1rem;
     margin-bottom: 1.25rem;
-    border-radius: 0.75rem;
-    background: color-mix(in oklch, var(--bg-surface) 60%, var(--background));
-    border: 1px solid oklch(1 0 0 / 8%);
+    border-radius: var(--radius);
+    background: color-mix(in oklch, var(--card) 10%, transparent);
+    border: 1px solid var(--card-border);
   }
 
   .statusline.bad {
-    background: color-mix(in oklch, var(--crit) 9%, var(--background));
+    background: color-mix(in oklch, var(--crit) 8%, transparent);
     border-color: color-mix(in oklch, var(--crit) 35%, transparent);
   }
 
