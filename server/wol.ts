@@ -8,6 +8,7 @@
 import type { IncomingMessage, ServerResponse } from 'http'
 import { createSocket } from 'dgram'
 import { execFile } from 'child_process'
+import { cached } from './http.ts'
 import { piholeRequest } from './pihole-proxy.ts'
 import { logger } from './log.ts'
 
@@ -32,17 +33,19 @@ interface PiholeDevice {
 
 let wolConfig: WolConfig | null = null
 
-export function initWol(cfg: WolConfig | undefined): void {
-  if (!cfg) return
-  if (!cfg.mac) {
-    log.warn(`WoL config present but missing "mac" field — WoL disabled`)
-    return
+/** Returns whether WoL is enabled, so the UI only offers it when it works. */
+export function initWol(cfg: WolConfig | undefined): boolean {
+  if (!cfg) return false
+  if (!/^[0-9a-f]{12}$/i.test((cfg.mac || '').replace(/[:-]/g, ''))) {
+    log.warn(`WoL config needs a "mac" like AA:BB:CC:DD:EE:FF — WoL disabled`)
+    return false
   }
   wolConfig = cfg
   log.info(`WoL enabled for "${cfg.name || cfg.hostname}" (MAC ${cfg.mac}, broadcast ${cfg.broadcast || '255.255.255.255'})`)
   if (!API_TOKEN) {
     log.warn('NEXUS_API_TOKEN not set — wake/shutdown endpoints are disabled')
   }
+  return true
 }
 
 function createMagicPacket(mac: string): Buffer {
@@ -89,14 +92,17 @@ function matchesHost(name?: string): boolean {
 async function findDevice(): Promise<PiholeDevice> {
   const data = await piholeRequest('/network/devices?max_devices=9999&max_addresses=9999')
   const devices: PiholeDevice[] = data.devices || []
-  const device = devices.find(d => (d.ips || []).some(e => matchesHost(e.name)))
-  if (!device) throw new Error(`Device "${wolConfig!.hostname}" not found in Pi-hole network table`)
+  // Match on the configured MAC: any LAN device can claim the hostname
+  const mac = wolConfig!.mac.replace(/-/g, ':').toLowerCase()
+  const device = devices.find(d => d.hwaddr?.toLowerCase() === mac)
+  if (!device) throw new Error(`MAC ${wolConfig!.mac} not found in Pi-hole network table`)
   return device
 }
 
 function getDeviceIp(device: PiholeDevice): string | null {
-  // IPv4 only — the colon check excludes IPv6 entries
-  return (device.ips || []).find(e => matchesHost(e.name) && e.ip && !e.ip.includes(':'))?.ip || null
+  // IPv4 only (the colon check excludes IPv6); prefer the address named after the host
+  const v4 = (device.ips || []).filter(e => e.ip && !e.ip.includes(':'))
+  return (v4.find(e => matchesHost(e.name)) ?? v4[0])?.ip || null
 }
 
 function jsonRes(res: ServerResponse, statusCode: number, data: unknown): void {
@@ -135,9 +141,12 @@ export function wolMiddleware(req: IncomingMessage, res: ServerResponse, next: N
   next()
 }
 
+// Every open dashboard polls status; share one Pi-hole lookup between them
+const findDeviceCached = cached(findDevice, 10_000)
+
 async function handleStatus(res: ServerResponse): Promise<void> {
   try {
-    const device = await findDevice()
+    const device = await findDeviceCached()
     const age = Math.floor(Date.now() / 1000) - (device.lastQuery || 0)
     jsonRes(res, 200, { name: wolConfig!.name || wolConfig!.hostname, online: age < 300 })
   } catch (err) {
@@ -160,11 +169,12 @@ async function handleShutdown(res: ServerResponse): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       execFile('ssh', [
         '-i', SSH_KEY,
+        '-o', 'BatchMode=yes',
         '-o', 'StrictHostKeyChecking=accept-new',
         '-o', 'ConnectTimeout=5',
         `${wolConfig!.ssh_user}@${ip}`,
         'shutdown', '/s', '/full', '/f', '/t', '0',
-      ], (err, _stdout, stderr) => {
+      ], { timeout: 15_000 }, (err, _stdout, stderr) => {
         if (err) reject(new Error(stderr.trim() || err.message))
         else resolve()
       })
