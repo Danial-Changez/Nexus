@@ -1,9 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { once } from 'node:events'
-import { createServer } from 'node:http'
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import { check } from './status.ts'
+import { check, record, statusMiddleware, type ServiceHistory } from './status.ts'
 
 test('a service is up unless it answers 5xx or does not answer at all', async () => {
   const server = createServer((req, res) => {
@@ -31,4 +31,26 @@ test('a service is up unless it answers 5xx or does not answer at all', async ()
   } finally {
     server.close()
   }
+})
+
+/** Read one service's entry the way the browser does, through GET /api/status. */
+async function statusFor(href: string): Promise<ServiceHistory> {
+  const body = await new Promise<string>(resolve => {
+    const res = { setHeader() {}, end: resolve } as unknown as ServerResponse
+    statusMiddleware({ url: '/api/status' } as IncomingMessage, res, () => {})
+  })
+  return JSON.parse(body)[href]
+}
+
+test('an outage longer than the history window keeps its real start time', async () => {
+  const href = 'http://long-outage.test'
+  record(href, { up: true, latency: 5, at: 0 })
+  for (let i = 1; i <= 40; i++) record(href, { up: false, latency: null, at: i * 30_000 })
+
+  const down = await statusFor(href)
+  assert.equal(down.history.length, 30, 'history is still capped at 30 checks')
+  assert.equal(down.downSince, 30_000, 'the outage began at the first failed check, 40 checks ago')
+
+  record(href, { up: true, latency: 5, at: 41 * 30_000 })
+  assert.equal((await statusFor(href)).downSince, undefined, 'recovery clears it')
 })

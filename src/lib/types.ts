@@ -47,6 +47,12 @@ export interface Check {
   code?: number
 }
 
+/** One entry of /api/status (see server/status.ts). */
+export interface ServiceHistory {
+  history: Check[]
+  downSince?: number
+}
+
 export interface ServiceStatus {
   status: 'up' | 'down' | 'checking'
   latency: number | null

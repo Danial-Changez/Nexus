@@ -11,7 +11,8 @@
   import { poll } from './lib/utils/poll.js'
   import { hashPage } from './lib/utils/hash.js'
   import { PAGE_IDS } from './lib/pages.js'
-  import { SVC_ICON, type Check, type Host, type HostData, type ServiceGroup, type ServiceItem, type ServiceStatus, type WolConfig, type WolStatus } from './lib/types.js'
+  import { SVC_ICON, type Host, type HostData, type ServiceGroup, type ServiceHistory, type ServiceItem, type ServiceStatus, type WolConfig, type WolStatus } from './lib/types.js'
+  import { isVirtualInterface } from './lib/utils/hosts.js'
 
   const NET_SAMPLES = 60
 
@@ -85,7 +86,7 @@
       if (Array.isArray(n) && n.length) {
         const iface = host.interface
           ? (n.find((i: any) => i.interface_name === host.interface) ?? n[0])
-          : (n.filter((i: any) => !(/^(lo|docker|veth|br-)/.test(i.interface_name)))
+          : (n.filter((i: any) => !isVirtualInterface(i.interface_name))
               .sort((a: any, b: any) => (b.bytes_all_rate_per_sec || 0) - (a.bytes_all_rate_per_sec || 0))[0]
             ?? n[0])
         net = {
@@ -128,19 +129,17 @@
   // ── Service Status (checked server-side, see server/status.ts) ──
   let serviceStatus = $state<Map<string, ServiceStatus>>(new Map())
 
-  function toStatus(history: Check[]): ServiceStatus {
+  function toStatus({ history, downSince }: ServiceHistory): ServiceStatus {
     const last = history.at(-1)
     if (!last) return { status: 'checking', latency: null, history }
-    let downSince: number | undefined
-    for (let i = history.length - 1; i >= 0 && !history[i].up; i--) downSince = history[i].at
-    return { status: last.up ? 'up' : 'down', latency: last.latency, history, downSince }
+    return { status: last.up ? 'up' : 'down', latency: last.latency, history, downSince: last.up ? undefined : downSince }
   }
 
   async function refreshServices() {
     try {
       const res = await fetch('/api/status')
       if (!res.ok) return
-      const data: Record<string, Check[]> = await res.json()
+      const data: Record<string, ServiceHistory> = await res.json()
       serviceStatus = new Map(Object.entries(data).map(([href, h]) => [href, toStatus(h)]))
     } catch { /* keep last known; StatusLine shows its age */ }
   }
