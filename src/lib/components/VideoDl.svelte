@@ -70,7 +70,7 @@
     <span class="panel-icon-wrap"><Icon name="downloadSquare" size="28px" /></span>
     <div>
       <span class="panel-title">Video Downloader</span>
-      <span class="panel-subtitle">Turkish episode fetcher</span>
+      <span class="panel-subtitle">Self-hosted downloader</span>
     </div>
 
     {#if !data}

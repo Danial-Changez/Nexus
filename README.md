@@ -26,7 +26,7 @@ A homelab dashboard built with Svelte 5 and Express 5. Monitors host resources v
      ┌───────┼──────────┬──────────┬──────────┐
      ▼       ▼          ▼          ▼          ▼
   Glances  Pi-hole   qBit/NZB   Sonarr/    video-dl
-  (hosts)  (DNS)     (torrent)  Radarr     (custom)
+  (hosts)  (DNS)     (clients)  Radarr     (custom)
 ```
 
 **Key design decisions:**
@@ -50,7 +50,7 @@ A homelab dashboard built with Svelte 5 and Express 5. Monitors host resources v
 - **Pi-hole stats** — DNS query stats via server-side proxy
 - **Media stack** — qBittorrent, NZBGet, Sonarr, Radarr, Prowlarr stats via server-side proxy
 - **Wake-on-LAN** — Wake/shutdown remote machines via Pi-hole MAC lookup + UDP magic packet
-- **Video downloader** — Live download progress for custom Turkish episode fetcher
+- **Video downloader** — Live progress from a self-hosted video downloader's status API
 - **Status at a glance** — the Overview opens with one sentence naming anything that's down; stale data is kept but marked with its age
 - **Keyboard** — `⌘K`/`Ctrl+K` or `/` searches pages and services, `1`–`6` jump to pages; ranges, sorts and searches live in the URL
 - **Dark theme** — OKLCH tokens with separate status (`--ok/--warn/--crit`) and data-series colors; override `--text-*` on `:root` to scale the UI for a wall display
