@@ -37,6 +37,12 @@ A UML component diagram. The SVG embeds its draw.io source, so open `docs/archit
 - **Keyboard** — `⌘K`/`Ctrl+K` or `/` searches pages, services, containers and power actions, `1`–`6` jump to pages; ranges, sorts and searches live in the URL
 - **Dark theme** — OKLCH tokens with separate status (`--ok/--warn/--crit`) and data-series colors; override `--text-*` on `:root` to scale the UI for a wall display
 
+## Screenshots
+
+| Containers | Network |
+|---|---|
+| ![The Containers page: Docker containers per host with status, CPU and memory](docs/containers.png) | ![The Network page: Pi-hole stats and an hour of traffic history per interface](docs/network.png) |
+
 ## Quick Start
 
 ```yaml
@@ -153,7 +159,7 @@ nexus/
 │   │   ├── types.ts        # Shared TypeScript interfaces, service-icon CDN base
 │   │   └── utils/          # Formatting, polling, hash-URL state, canvas chart helpers
 │   └── pages/              # Page-level components (one per route)
-├── docs/                   # Architecture diagram (draw.io SVG) and screenshot
+├── docs/                   # Architecture diagram (draw.io SVG) and screenshots
 ├── Dockerfile              # Multi-stage: build the client, run the server as the node user
 ├── vite.config.ts          # Svelte plugin; forwards /api to :3000 in development
 ├── LICENSE
