@@ -120,7 +120,7 @@ Required only if using the media stats page. Passed via `env_file` or `environme
 | `HOMEPAGE_VAR_PROWLARR_KEY` | Prowlarr API key |
 | `VIDEO_DL_1_URL` | Video downloader API URL |
 | `CONFIG_PATH` | Config file path (default: `/config/config.json`) |
-| `NEXUS_API_TOKEN` | If set, `POST /api/wol/wake` and `/api/wol/shutdown` require a matching `X-Nexus-Token` header (the UI prompts once and stores it in localStorage). Unset = unauthenticated (a warning is logged) |
+| `NEXUS_API_TOKEN` | Required for wake and shutdown. `POST /api/wol/wake` and `/api/wol/shutdown` need a matching `X-Nexus-Token` header (the UI asks once and stores it in localStorage). Unset, both endpoints answer `503` and stay disabled |
 
 ## Project Structure
 

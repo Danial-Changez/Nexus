@@ -41,7 +41,7 @@ export function initWol(cfg: WolConfig | undefined): void {
   wolConfig = cfg
   log.info(`WoL enabled for "${cfg.name || cfg.hostname}" (MAC ${cfg.mac}, broadcast ${cfg.broadcast || '255.255.255.255'})`)
   if (!API_TOKEN) {
-    log.warn('NEXUS_API_TOKEN not set — wake/shutdown endpoints are unauthenticated')
+    log.warn('NEXUS_API_TOKEN not set — wake/shutdown endpoints are disabled')
   }
 }
 
@@ -107,13 +107,6 @@ function jsonRes(res: ServerResponse, statusCode: number, data: unknown): void {
 
 type NextFn = () => void
 
-// Wake/shutdown are state-changing (shutdown SSHes into the box), so when
-// NEXUS_API_TOKEN is set they require the matching X-Nexus-Token header.
-function authorized(req: IncomingMessage): boolean {
-  if (!API_TOKEN) return true
-  return req.headers['x-nexus-token'] === API_TOKEN
-}
-
 export function wolMiddleware(req: IncomingMessage, res: ServerResponse, next: NextFn): void {
   if (!wolConfig) return next()
 
@@ -123,7 +116,13 @@ export function wolMiddleware(req: IncomingMessage, res: ServerResponse, next: N
   }
 
   if ((req.url === '/api/wol/shutdown' || req.url === '/api/wol/wake') && req.method === 'POST') {
-    if (!authorized(req)) {
+    // Wake/shutdown change state (shutdown SSHes into the machine), so they
+    // stay off until NEXUS_API_TOKEN is set, then need a matching X-Nexus-Token.
+    if (!API_TOKEN) {
+      jsonRes(res, 503, { error: 'Wake and shutdown are disabled until NEXUS_API_TOKEN is set' })
+      return
+    }
+    if (req.headers['x-nexus-token'] !== API_TOKEN) {
       log.warn(`Unauthorized ${req.url} attempt`)
       jsonRes(res, 401, { error: 'Invalid or missing API token' })
       return
