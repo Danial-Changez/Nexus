@@ -75,7 +75,9 @@ function smoothPath(ctx: CanvasRenderingContext2D, points: number[], pad: Pad, w
   }))
   if (coords.length < 2) return
   const yMin = pad.t, yMax = pad.t + h
-  ctx.moveTo(coords[0].x, coords[0].y)
+  // lineTo, not moveTo: drawSeries starts the fill at the baseline, and a moveTo would
+  // drop that point and close the fill diagonally. On an empty path lineTo acts as moveTo.
+  ctx.lineTo(coords[0].x, coords[0].y)
   for (let i = 0; i < coords.length - 1; i++) {
     const p0 = coords[Math.max(0, i - 1)]
     const p1 = coords[i]
