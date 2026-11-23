@@ -1,7 +1,7 @@
 export function fmt(bytes: number): string {
-  if (!bytes) return '0 B'
-  const k = 1024, s = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  if (!(bytes >= 1)) return '0 B' // also covers NaN, negatives and fractions
+  const k = 1024, s = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), s.length - 1)
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + s[i]
 }
 

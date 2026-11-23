@@ -125,7 +125,7 @@
 
       {#if stats.nzbget.groups.length > 0}
         <div class="item-list">
-          {#each stats.nzbget.groups as g (g.name)}
+          {#each stats.nzbget.groups as g, i (i)}
             <div class="item-row">
               <div class="item-info">
                 <span class="item-name" title={g.name}>{g.name}</span>
@@ -190,7 +190,7 @@
 
       {#if stats.qbit.torrents.length > 0}
         <div class="item-list">
-          {#each stats.qbit.torrents as t (t.name)}
+          {#each stats.qbit.torrents as t, i (i)}
             <div class="item-row">
               <div class="item-info">
                 <span class="item-name" title={t.name}>{t.name}</span>
@@ -260,7 +260,7 @@
 
           {#if d.items.length > 0}
             <div class="item-list">
-              {#each d.items as item (item.title)}
+              {#each d.items as item, i (i)}
                 <div class="item-row">
                   <div class="item-info">
                     <span class="item-name" title={item.title}>{item.title}</span>

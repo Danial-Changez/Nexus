@@ -129,7 +129,7 @@
     <kbd>esc</kbd>
   </div>
   <ul id="palette-results" role="listbox">
-    {#each results as item, i (item.group + item.href)}
+    {#each results as item, i (i)}
       {#if i === 0 || results[i - 1].group !== item.group}
         <li class="group" role="presentation">{item.group}</li>
       {/if}

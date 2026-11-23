@@ -70,13 +70,15 @@
   async function fetchHost(host: Host): Promise<HostData> {
     try {
       const g = `/api/glances/${host.key}`
+      // A 502 from the proxy still has a JSON body; treat it as a failure, not as zeros
+      const json = (r: Response) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))
       const [c, m, f, n, ch, up] = await Promise.all([
-        fetch(`${g}/api/4/cpu`).then(r => r.json()),
-        fetch(`${g}/api/4/mem`).then(r => r.json()),
-        fetch(`${g}/api/4/fs`).then(r => r.json()),
-        fetch(`${g}/api/4/network`).then(r => r.json()).catch(() => null),
-        fetch(`${g}/api/4/cpu/history`).then(r => r.json()).catch(() => null),
-        fetch(`${g}/api/4/uptime`).then(r => r.json()).catch(() => null),
+        fetch(`${g}/api/4/cpu`).then(json),
+        fetch(`${g}/api/4/mem`).then(json),
+        fetch(`${g}/api/4/fs`).then(json),
+        fetch(`${g}/api/4/network`).then(json).catch(() => null),
+        fetch(`${g}/api/4/cpu/history`).then(json).catch(() => null),
+        fetch(`${g}/api/4/uptime`).then(json).catch(() => null),
       ])
 
       let net = null
@@ -150,7 +152,10 @@
   async function refreshUpstreams() {
     const problems: string[] = []
     try {
-      if (!(await fetch('/api/pihole/stats')).ok) problems.push('Pi-hole')
+      const res = await fetch('/api/pihole/stats')
+      const body: { error?: string } | null = res.ok ? await res.json() : null
+      // An unconfigured Pi-hole is absent, not a problem
+      if (!body || (body.error && !/not configured/i.test(body.error))) problems.push('Pi-hole')
     } catch { problems.push('Pi-hole') }
     try {
       const res = await fetch('/api/media/stats')
