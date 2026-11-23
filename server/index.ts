@@ -37,8 +37,9 @@ try {
 
 // Initialize Glances proxy with host URLs from config
 initGlancesProxy(config.hosts || [])
-initWol(config.wol)
-initStatus((config.services || []).flatMap(g => g.items.map(i => i.href)))
+const wolEnabled = initWol(config.wol)
+// A Set, so an href listed in two sections is checked once per run
+initStatus([...new Set((config.services || []).flatMap(g => g.items.map(i => i.href)))])
 
 const app = express()
 
@@ -47,9 +48,12 @@ const app = express()
 // server-side.
 const clientConfig = {
   hosts: (config.hosts || []).map(h => ({ key: h.key, name: h.name, interface: h.interface })),
-  services: config.services || [],
+  services: (config.services || []).map(g => ({
+    section: g.section,
+    items: g.items.map(({ name, icon, href, desc }) => ({ name, icon, href, desc })),
+  })),
   overview_services: config.overview_services || [],
-  wol: config.wol ? { name: config.wol.name, hostname: config.wol.hostname } : null,
+  wol: wolEnabled ? { name: config.wol!.name, hostname: config.wol!.hostname } : null,
 }
 
 app.get('/api/config', (_req, res) => {
@@ -58,11 +62,11 @@ app.get('/api/config', (_req, res) => {
 
 // API middleware (before static files)
 app.use(glancesMiddleware)
-app.use(piholeMiddleware as any)
-app.use(mediaMiddleware as any)
-app.use(videoDlMiddleware as any)
-app.use(wolMiddleware as any)
-app.use(statusMiddleware as any)
+app.use(piholeMiddleware)
+app.use(mediaMiddleware)
+app.use(videoDlMiddleware)
+app.use(wolMiddleware)
+app.use(statusMiddleware)
 
 // Serve static build
 app.use(express.static(resolve(__dirname, '../dist')))

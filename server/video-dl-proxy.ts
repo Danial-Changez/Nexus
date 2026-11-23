@@ -3,7 +3,7 @@
  * dashboard.
  */
 
-import { fetchJson, jsonEndpoint } from './http.ts'
+import { cached, fetchJson, jsonEndpoint } from './http.ts'
 import { logger } from './log.ts'
 
 const log = logger('video-dl')
@@ -35,4 +35,4 @@ async function getVideoDlStats() {
   }
 }
 
-export const videoDlMiddleware = jsonEndpoint('/api/video-dl', getVideoDlStats, log)
+export const videoDlMiddleware = jsonEndpoint('/api/video-dl', cached(getVideoDlStats, 1_000), log)

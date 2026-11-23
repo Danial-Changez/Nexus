@@ -1,6 +1,6 @@
 /**
- * Shared upstream-fetch helpers: every proxied call gets a timeout, and
- * polled aggregate endpoints can be wrapped in a short TTL cache so
+ * Shared upstream-fetch helpers: fetchJson adds a timeout, and polled
+ * aggregate endpoints can be wrapped in a short TTL cache so
  * multiple open dashboards don't multiply upstream load.
  */
 
@@ -29,8 +29,10 @@ export function cached<T>(fn: () => Promise<T>, ttlMs: number): () => Promise<T>
   return () => {
     if (!value || Date.now() > expires) {
       expires = Date.now() + ttlMs
-      value = fn()
-      value.catch(() => { value = null })
+      const p = fn()
+      value = p
+      // Only drop the cache if a newer call hasn't replaced this promise
+      p.catch(() => { if (value === p) value = null })
     }
     return value
   }
