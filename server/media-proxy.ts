@@ -3,7 +3,6 @@
  * with server-side auth so API keys stay off the client.
  */
 
-import type { Plugin } from 'vite'
 import { fetchJson, cached, jsonEndpoint } from './http.ts'
 import { logger } from './log.ts'
 
@@ -234,11 +233,3 @@ async function getAllMediaStats() {
 // Short cache so several open dashboards share one upstream fan-out
 export const mediaMiddleware = jsonEndpoint('/api/media/stats', cached(getAllMediaStats, 5_000), log)
 
-export default function mediaProxy(): Plugin {
-  return {
-    name: 'media-proxy',
-    configureServer(server) {
-      server.middlewares.use(mediaMiddleware as any)
-    },
-  }
-}
