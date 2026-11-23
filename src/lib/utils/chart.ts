@@ -1,6 +1,6 @@
 /* ── Shared chart utilities ──
  * Composable building blocks for canvas-based sparkline charts.
- * Both Sparkline (CPU) and NetSparkline (network) import from here.
+ * Used by Sparkline.svelte; cutoffIndex is also used by the Metrics and Network pages.
  */
 
 interface Pad { l: number; r: number; t: number; b: number }

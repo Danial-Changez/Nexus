@@ -27,6 +27,7 @@
   "overview_services": ["Proxmox", "Pi-hole", "TrueNAS", "Plex"],
   "wol": {
     "name": "My PC",
-    "hostname": "my-pc.lan"
+    "hostname": "my-pc.lan",
+    "mac": "AA:BB:CC:DD:EE:FF"
   }
 }
