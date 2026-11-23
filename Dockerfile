@@ -22,4 +22,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 EXPOSE 3000
 
+# Run as the image's unprivileged node user (UID 1000)
+USER node
+
 CMD ["node", "server/index.ts"]
