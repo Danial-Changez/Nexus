@@ -20,7 +20,9 @@
     try {
       const res = await fetch('/api/pihole/stats')
       if (!res.ok) throw new Error(`${res.status}`)
-      stats = await res.json()
+      const body = await res.json()
+      if (body.error) throw new Error(body.error)
+      stats = body
       error = null
       updatedAt = Date.now()
     } catch (e) {
