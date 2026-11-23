@@ -7,13 +7,8 @@
   import MiniSpark from './MiniSpark.svelte'
   import Sparkline from './Sparkline.svelte'
   import NetworkStats from './NetworkStats.svelte'
+  import { hostIcon } from '../utils/hosts.js'
 
-  /** Map host keys to icon names */
-  const HOST_ICONS: Record<string, string> = {
-    docker: 'container',
-    proxmox: 'server',
-    truenas: 'hardDrive',
-  }
   const SPARK_POINTS = 60
 
   interface Props {
@@ -62,7 +57,7 @@
 <div class="host-card card" class:stale={status === 'stale'}>
   <div class="card-header">
     <div class="card-icon">
-      <Icon name={HOST_ICONS[host.key] ?? 'server'} size="20px" />
+      <Icon name={hostIcon(host.key)} size="20px" />
     </div>
     <div class="card-heading">
       <h2 class="card-title">{host.name}</h2>

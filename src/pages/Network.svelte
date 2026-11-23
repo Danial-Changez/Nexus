@@ -10,8 +10,8 @@
   import PiholeStats from '../lib/components/PiholeStats.svelte'
   import PageHeader from '../lib/components/PageHeader.svelte'
   import Icon from '../lib/components/Icon.svelte'
+  import { hostIcon, isVirtualInterface } from '../lib/utils/hosts.js'
 
-  const HOST_ICONS: Record<string, string> = { docker: 'container', proxmox: 'server', truenas: 'hardDrive' }
 
   interface Props {
     hosts?: Host[]
@@ -203,7 +203,7 @@
   {@const interfaces = networkData.get(host.key) ?? []}
   <div class="host-section">
     <div class="host-label">
-      <span class="host-label-icon"><Icon name={HOST_ICONS[host.key] ?? 'server'} size="16px" /></span>
+      <span class="host-label-icon"><Icon name={hostIcon(host.key)} size="16px" /></span>
       {host.name}
       {#if interfaces.length > 0}
         <span class="host-iface-count">{interfaces.length} interfaces</span>
@@ -215,7 +215,7 @@
     {:else}
       {#each interfaces as iface (iface.interface_name)}
         {@const hist = historySnapshot?.get(host.key)?.get(iface.interface_name)}
-        {@const isPhysical = !(/^(docker|veth|br-)/.test(iface.interface_name))}
+        {@const isPhysical = !isVirtualInterface(iface.interface_name)}
         <div class="iface-card card" class:secondary={!isPhysical}>
           <div class="iface-header">
             <span class="iface-icon" class:physical={isPhysical}><Icon name="global" size="18px" /></span>
