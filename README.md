@@ -2,33 +2,13 @@
 
 A homelab dashboard built with Svelte 5 and Express 5. Monitors host resources via Glances, tracks service uptime, displays Docker containers, network traffic, and media stack stats.
 
+![The Nexus overview page: three Glances hosts with CPU, memory and disk, and service status](docs/overview.png)
+
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Browser (SPA)                                              │
-│  Svelte 5 + Vite 7 │ hash-based routing │ inline SVG icons  │
-└────────────┬────────────────────────────────────────────────┘
-             │  fetch /api/*
-┌────────────▼────────────────────────────────────────────────┐
-│  Express 5 Server (server/index.ts)                         │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │glances-proxy │  │ pihole-proxy │  │ media-proxy  │       │
-│  │  (per host)  │  │  (session)   │  │ (aggregate)  │       │
-│  └──────────────┘  └──────────────┘  └──────────────┘       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐       │
-│  │video-dl-proxy│  │    wol.ts    │  │  status.ts   │       │
-│  │  (timeout)   │  │ (UDP magic)  │  │ (30s checks) │       │
-│  └──────────────┘  └──────────────┘  └──────────────┘       │
-│  shared: http.ts (timeouts, TTL cache), log.ts              │
-└────────────┬────────────────────────────────────────────────┘
-             │
-     ┌───────┼──────────┬──────────┬──────────┐
-     ▼       ▼          ▼          ▼          ▼
-  Glances  Pi-hole   qBit/NZB   Sonarr/    video-dl
-  (hosts)  (DNS)     (clients)  Radarr     (custom)
-```
+![UML component diagram of Nexus: the browser SPA uses the Express server's REST API, and each server component depends on one upstream system](docs/architecture.drawio.svg)
+
+A UML component diagram. The SVG embeds its draw.io source, so open `docs/architecture.drawio.svg` in [draw.io](https://www.drawio.com) to edit it.
 
 **Key design decisions:**
 
@@ -173,6 +153,7 @@ nexus/
 │   │   ├── types.ts        # Shared TypeScript interfaces, service-icon CDN base
 │   │   └── utils/          # Formatting, polling, hash-URL state, canvas chart helpers
 │   └── pages/              # Page-level components (one per route)
+├── docs/                   # Architecture diagram (draw.io SVG) and screenshot
 ├── Dockerfile              # Multi-stage: build the client, run the server as the node user
 ├── vite.config.ts          # Svelte plugin; forwards /api to :3000 in development
 ├── LICENSE
