@@ -4,7 +4,6 @@
  * is down) and is the same for every viewer.
  */
 
-import type { IncomingMessage, ServerResponse } from 'http'
 import { jsonEndpoint } from './http.ts'
 import { logger } from './log.ts'
 
@@ -17,7 +16,7 @@ export interface Check { up: boolean; latency: number | null; at: number; code?:
 
 const history = new Map<string, Check[]>()
 
-async function check(href: string): Promise<Check> {
+export async function check(href: string): Promise<Check> {
   const start = performance.now()
   try {
     // redirect: 'manual' so a login redirect counts as up without following it
@@ -46,8 +45,4 @@ export function initStatus(hrefs: string[]): void {
   log.info(`Checking ${hrefs.length} services every ${INTERVAL_MS / 1000}s`)
 }
 
-const endpoint = jsonEndpoint('/api/status', async () => Object.fromEntries(history), log)
-
-export function statusMiddleware(req: IncomingMessage, res: ServerResponse, next: () => void): void {
-  endpoint(req, res, next)
-}
+export const statusMiddleware = jsonEndpoint('/api/status', async () => Object.fromEntries(history), log)
